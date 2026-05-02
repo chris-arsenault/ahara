@@ -334,6 +334,10 @@ jobs:
 
       # ── TrueNAS deploy (Docker + Komodo) ────────────────────
 
+      - name: Set up Docker Buildx
+        if: inputs.deploy && github.ref == 'refs/heads/main' && steps.config.outputs.has_truenas == 'true'
+        uses: docker/setup-buildx-action@v4
+
       - name: Build and push Docker images
         if: inputs.deploy && github.ref == 'refs/heads/main' && steps.config.outputs.has_truenas == 'true'
         run: |
@@ -344,23 +348,36 @@ jobs:
           SHA="${{ github.sha }}"
           IMAGES='${{ steps.config.outputs.images }}'
 
+          build_and_push() {
+            local context="$1"
+            local tag="$2"
+            local latest_tag="$3"
+            local cache_tag="$4"
+
+            echo "Building ${tag} from ${context}"
+            docker buildx build \
+              --push \
+              --tag "$tag" \
+              --tag "$latest_tag" \
+              --cache-from "type=registry,ref=${cache_tag}" \
+              --cache-to "type=registry,ref=${cache_tag},mode=max" \
+              "$context"
+          }
+
           if [ -n "$IMAGES" ] && [ "$IMAGES" != "null" ]; then
             # Multi-image: one per component
             for COMPONENT in $(echo "$IMAGES" | python3 -c "import sys,json; [print(c) for c in json.load(sys.stdin)]"); do
               TAG="ghcr.io/chris-arsenault/${PROJECT}/${COMPONENT}:${SHA}"
               TAG_LATEST="ghcr.io/chris-arsenault/${PROJECT}/${COMPONENT}:latest"
-              echo "Building ${TAG} from ${COMPONENT}/"
-              docker build -t "$TAG" -t "$TAG_LATEST" "${COMPONENT}/"
-              docker push "$TAG"
-              docker push "$TAG_LATEST"
+              CACHE_TAG="ghcr.io/chris-arsenault/${PROJECT}/${COMPONENT}:buildcache"
+              build_and_push "${COMPONENT}/" "$TAG" "$TAG_LATEST" "$CACHE_TAG"
             done
           else
             # Single image from root
             TAG="ghcr.io/chris-arsenault/${PROJECT}:${SHA}"
             TAG_LATEST="ghcr.io/chris-arsenault/${PROJECT}:latest"
-            docker build -t "$TAG" -t "$TAG_LATEST" .
-            docker push "$TAG"
-            docker push "$TAG_LATEST"
+            CACHE_TAG="ghcr.io/chris-arsenault/${PROJECT}:buildcache"
+            build_and_push "." "$TAG" "$TAG_LATEST" "$CACHE_TAG"
           fi
 
       - name: Read TrueNAS secrets
