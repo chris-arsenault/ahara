@@ -5,6 +5,7 @@ Index repo for the platform layer. Contains documentation, CI tooling, shared wo
 ## Contents
 
 - `INTEGRATION.md` — canonical integration guide for AI agents
+- `skills/repo-docs/` — repository documentation conventions skill, mirrored to `~/.claude/skills/repo-docs/` for active use
 - `CI-WORKFLOW.md` — shared reusable CI/CD workflow, platform.yml, governance, SonarQube
 - `TRUENAS-DEPLOY.md` — TrueNAS deploy pattern (Docker, Komodo, networking)
 - `.github/workflows/ci.yml` — shared reusable workflow (called by all standard projects)
