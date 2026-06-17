@@ -519,6 +519,19 @@ module "cognito" {
 
 This creates a public client (no secret) with standard auth flows and publishes the client ID to SSM at `/ahara/cognito/clients/<prefix>-app`.
 
+### Required OTP/MFA handling
+
+The shared Cognito user pool is configured in `ahara-infra` with `mfa_configuration = "ON"` and software-token MFA enabled. This is platform-wide: any app that signs users in directly must support Cognito's TOTP setup and challenge flow.
+
+For custom login UIs using `amazon-cognito-identity-js`, Amplify, or the AWS SDK:
+
+- Handle `SOFTWARE_TOKEN_MFA` by prompting for the user's 6-digit authenticator app code and confirming the challenge as software-token MFA.
+- Handle `MFA_SETUP` by calling `associateSoftwareToken`, rendering the returned secret as a QR/manual setup code, then calling `verifySoftwareToken` with the user's 6-digit code.
+- Use an app-specific TOTP issuer/account label such as `<Product Name>:<username>`. Cognito software-token MFA uses the standard authenticator-app defaults: SHA1, 6 digits, 30 seconds.
+- Do not add a project-local OTP store, bypass the shared pool, or rely on SMS MFA/custom auth challenges; those are not part of the platform configuration.
+
+Apps that use Cognito Hosted UI/OAuth can let Cognito render the OTP screens. Apps with custom login screens must implement these challenge states before they are considered production-ready.
+
 ### Server/OAuth client (e.g. MCP connector)
 
 For confidential clients that need an authorization code grant:
@@ -542,6 +555,8 @@ This creates a confidential client (with secret) and enables OAuth code flow wit
 | `client_secret` | Client secret (sensitive, only set for server clients) |
 
 Pass the client ID and pool ID to your frontend as runtime config (see Step 7). The frontend uses `amazon-cognito-identity-js` with an in-app login form and sends `Authorization: Bearer <access_token>` on every API request.
+
+No OTP seed or MFA secret belongs in runtime config or SSM. Cognito returns a temporary software-token secret during `MFA_SETUP`; the frontend shows it once for authenticator enrollment and verifies it immediately.
 
 **To grant user access**: add an entry to the `apps` map in DynamoDB table `websites-user-access` (key: username, field: `apps.<name>` = role string). The pre-auth Lambda checks this on every login.
 
