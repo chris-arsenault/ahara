@@ -386,9 +386,24 @@ jobs:
         run: |
           set -euo pipefail
           python3 << 'PYEOF'
-          import yaml, os
-          with open('secret-paths.yml') as f:
-              paths = yaml.safe_load(f)
+          import os
+          from pathlib import Path
+
+          text = Path("secret-paths.yml").read_text()
+          paths = {}
+          if text.strip() and text.strip() != "{}":
+              for lineno, line in enumerate(text.splitlines(), 1):
+                  stripped = line.strip()
+                  if not stripped or stripped.startswith("#"):
+                      continue
+                  if ":" not in line:
+                      raise SystemExit(f"secret-paths.yml:{lineno}: expected KEY: /ssm/path")
+                  key, value = line.split(":", 1)
+                  key = key.strip()
+                  value = value.strip()
+                  if not key or not value:
+                      raise SystemExit(f"secret-paths.yml:{lineno}: expected KEY: /ssm/path")
+                  paths[key] = value
           out = os.environ["GITHUB_OUTPUT"]
           lines = "\n".join(f"{k}={v}" for k, v in paths.items())
           with open(out, "a") as f:
