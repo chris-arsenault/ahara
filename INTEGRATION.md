@@ -521,16 +521,17 @@ This creates a public client (no secret) with standard auth flows and publishes 
 
 ### Required OTP/MFA handling
 
-The shared Cognito user pool is configured in `ahara-infra` with `mfa_configuration = "ON"` and software-token MFA enabled. This is platform-wide: any app that signs users in directly must support Cognito's TOTP setup and challenge flow.
+The shared Cognito user pool is configured in `ahara-infra` with `mfa_configuration = "ON"` and software-token (TOTP) MFA enabled. This is platform-wide: any app that signs users in directly hits Cognito's MFA challenges.
 
-For custom login UIs using `amazon-cognito-identity-js`, Amplify, or the AWS SDK:
+**Enrollment is centralized in `ahara-business`.** Authenticator (TOTP) *enrollment* — the Cognito `MFA_SETUP` challenge: `associateSoftwareToken`, rendering the returned secret as a QR/manual setup code, then `verifySoftwareToken` — is implemented **only** in `ahara-business`, the account portal. No other app implements setup. This keeps one enrollment surface and one issuer/label convention for the whole platform. `ahara-business` uses the TOTP issuer/account label `<Product Name>:<username>` with the standard authenticator-app defaults (SHA1, 6 digits, 30 seconds).
 
-- Handle `SOFTWARE_TOKEN_MFA` by prompting for the user's 6-digit authenticator app code and confirming the challenge as software-token MFA.
-- Handle `MFA_SETUP` by calling `associateSoftwareToken`, rendering the returned secret as a QR/manual setup code, then calling `verifySoftwareToken` with the user's 6-digit code.
-- Use an app-specific TOTP issuer/account label such as `<Product Name>:<username>`. Cognito software-token MFA uses the standard authenticator-app defaults: SHA1, 6 digits, 30 seconds.
-- Do not add a project-local OTP store, bypass the shared pool, or rely on SMS MFA/custom auth challenges; those are not part of the platform configuration.
+Every **other** custom login UI (using `amazon-cognito-identity-js`, Amplify, or the AWS SDK) handles **login only**:
 
-Apps that use Cognito Hosted UI/OAuth can let Cognito render the OTP screens. Apps with custom login screens must implement these challenge states before they are considered production-ready.
+- Handle `SOFTWARE_TOKEN_MFA` by prompting for the user's 6-digit authenticator code and confirming the challenge as software-token MFA. This is the only MFA state these apps implement.
+- On `MFA_SETUP` (the user has no authenticator enrolled yet), do **not** run setup locally. Stop the sign-in and direct the user to enroll in `ahara-business`, then return to sign in.
+- Do not add a project-local OTP store, bypass the shared pool, store an OTP seed/secret in runtime config or SSM, or rely on SMS MFA/custom auth challenges; none of those are part of the platform configuration.
+
+Apps that use Cognito Hosted UI/OAuth can let Cognito render the OTP screens. Apps with custom login screens must implement the `SOFTWARE_TOKEN_MFA` challenge before they are considered production-ready; only `ahara-business` implements `MFA_SETUP`.
 
 ### Server/OAuth client (e.g. MCP connector)
 
@@ -556,7 +557,7 @@ This creates a confidential client (with secret) and enables OAuth code flow wit
 
 Pass the client ID and pool ID to your frontend as runtime config (see Step 7). The frontend uses `amazon-cognito-identity-js` with an in-app login form and sends `Authorization: Bearer <access_token>` on every API request.
 
-No OTP seed or MFA secret belongs in runtime config or SSM. Cognito returns a temporary software-token secret during `MFA_SETUP`; the frontend shows it once for authenticator enrollment and verifies it immediately.
+No OTP seed or MFA secret belongs in runtime config or SSM. Enrollment happens only in `ahara-business`, where Cognito returns a temporary software-token secret during `MFA_SETUP`; that portal shows it once for authenticator enrollment and verifies it immediately. Other frontends only complete the `SOFTWARE_TOKEN_MFA` login challenge.
 
 **To grant user access**: add an entry to the `apps` map in DynamoDB table `websites-user-access` (key: username, field: `apps.<name>` = role string). The pre-auth Lambda checks this on every login.
 
