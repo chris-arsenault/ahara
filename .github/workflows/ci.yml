@@ -58,6 +58,9 @@ jobs:
               f.write(f"rust_lambdas={json.dumps(rust_lambdas)}\n")
               f.write(f"rust_binaries={json.dumps(rust_binaries)}\n")
               f.write(f"rust_telemetry_adoption={'true' if cfg.get('rust_telemetry_adoption') else 'false'}\n")
+              rust_shared_crates_dir = cfg.get("rust_shared_crates_dir", "")
+              f.write(f"has_rust_shared_crates={'true' if rust_shared_crates_dir else 'false'}\n")
+              f.write(f"rust_shared_crates_dir={rust_shared_crates_dir}\n")
               # Detect directories from filesystem unless the manifest pins them
               import glob
               cargo_files = glob.glob('**/Cargo.toml', recursive=True)
@@ -132,6 +135,21 @@ jobs:
           set -euo pipefail
           cargo install --git https://github.com/chris-arsenault/ahara-infra.git ahara-lambda-telemetry --bin ahara-telemetry-adoption-check --locked --force
           ahara-telemetry-adoption-check "${{ steps.config.outputs.rust_dir }}"
+
+      - name: Lint shared Rust crates
+        if: steps.config.outputs.has_rust == 'true' && steps.config.outputs.has_rust_shared_crates == 'true'
+        working-directory: ${{ steps.config.outputs.rust_shared_crates_dir }}
+        run: cargo clippy --workspace -- -D warnings
+
+      - name: Format shared Rust crates
+        if: steps.config.outputs.has_rust == 'true' && steps.config.outputs.has_rust_shared_crates == 'true'
+        working-directory: ${{ steps.config.outputs.rust_shared_crates_dir }}
+        run: cargo fmt --check
+
+      - name: Test shared Rust crates
+        if: steps.config.outputs.has_rust == 'true' && steps.config.outputs.has_rust_shared_crates == 'true'
+        working-directory: ${{ steps.config.outputs.rust_shared_crates_dir }}
+        run: cargo test --workspace
 
       - name: Run extra Rust CI commands
         if: steps.config.outputs.has_rust == 'true' && inputs.rust_extra_ci_commands != ''
