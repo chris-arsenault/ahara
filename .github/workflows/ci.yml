@@ -57,11 +57,15 @@ jobs:
               f.write(f"has_rust_binaries={'true' if rust_binaries else 'false'}\n")
               f.write(f"rust_lambdas={json.dumps(rust_lambdas)}\n")
               f.write(f"rust_binaries={json.dumps(rust_binaries)}\n")
-              # Detect directories from filesystem
+              f.write(f"rust_telemetry_adoption={'true' if cfg.get('rust_telemetry_adoption') else 'false'}\n")
+              # Detect directories from filesystem unless the manifest pins them
               import glob
               cargo_files = glob.glob('**/Cargo.toml', recursive=True)
-              # Find the workspace root (shallowest Cargo.toml)
-              if cargo_files:
+              rust_dir_override = cfg.get('rust_dir')
+              if rust_dir_override:
+                  rust_dir = rust_dir_override
+              elif cargo_files:
+                  # Find the workspace root (shallowest Cargo.toml)
                   rust_dir = os.path.dirname(sorted(cargo_files, key=lambda p: p.count('/'))[0]) or '.'
               else:
                   rust_dir = 'backend'
@@ -121,6 +125,13 @@ jobs:
         if: steps.config.outputs.has_rust == 'true'
         working-directory: ${{ steps.config.outputs.rust_dir }}
         run: CARGO_TARGET_DIR=target-clippy cargo clippy --release -- -D warnings -W clippy::cognitive_complexity
+
+      - name: Check Rust Lambda telemetry adoption
+        if: steps.config.outputs.has_rust == 'true' && steps.config.outputs.rust_telemetry_adoption == 'true'
+        run: |
+          set -euo pipefail
+          cargo install --git https://github.com/chris-arsenault/ahara-infra.git --bin ahara-telemetry-adoption-check --locked --force
+          ahara-telemetry-adoption-check "${{ steps.config.outputs.rust_dir }}"
 
       - name: Run extra Rust CI commands
         if: steps.config.outputs.has_rust == 'true' && inputs.rust_extra_ci_commands != ''
