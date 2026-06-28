@@ -130,7 +130,7 @@ jobs:
         if: steps.config.outputs.has_rust == 'true' && steps.config.outputs.rust_telemetry_adoption == 'true'
         run: |
           set -euo pipefail
-          cargo install --git https://github.com/chris-arsenault/ahara-infra.git --bin ahara-telemetry-adoption-check --locked --force
+          cargo install --git https://github.com/chris-arsenault/ahara-infra.git ahara-lambda-telemetry --bin ahara-telemetry-adoption-check --locked --force
           ahara-telemetry-adoption-check "${{ steps.config.outputs.rust_dir }}"
 
       - name: Run extra Rust CI commands
