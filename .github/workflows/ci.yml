@@ -46,9 +46,14 @@ jobs:
               f.write(f"has_typescript={'true' if 'typescript' in stack else 'false'}\n")
               f.write(f"has_python={'true' if 'python' in stack else 'false'}\n")
               f.write(f"has_terraform={'true' if 'terraform' in stack else 'false'}\n")
+              f.write(f"has_vendor={'true' if 'vendor' in stack else 'false'}\n")
               f.write(f"has_migrations={'true' if cfg.get('migrations') else 'false'}\n")
               f.write(f"migrations_dir={cfg.get('migrations', '')}\n")
               f.write(f"has_truenas={'true' if cfg.get('truenas') else 'false'}\n")
+              f.write(f"truenas_images={'true' if cfg.get('truenas_images', True) else 'false'}\n")
+              truenas_compose_path = cfg.get('truenas_compose_path', 'compose.yaml')
+              f.write(f"truenas_compose_path={truenas_compose_path}\n")
+              f.write(f"truenas_compose_check_paths={json.dumps(cfg.get('truenas_compose_check_paths') or [truenas_compose_path])}\n")
               # Rust artifacts — explicit declaration of what gets built where
               rust_artifacts = cfg.get("rust_artifacts") or {}
               rust_lambdas = rust_artifacts.get("lambdas") or []
@@ -255,6 +260,21 @@ jobs:
         if: steps.config.outputs.has_terraform == 'true'
         run: terraform fmt -check -recursive infrastructure/terraform/
 
+      # ── Vendor Compose ─────────────────────────────────────
+
+      - name: Lint vendor config
+        if: steps.config.outputs.has_vendor == 'true'
+        run: |
+          set -euo pipefail
+          env_args=()
+          if [ -f .env.example ]; then
+            env_args=(--env-file .env.example)
+          fi
+          COMPOSE_PATHS='${{ steps.config.outputs.truenas_compose_check_paths }}'
+          echo "${COMPOSE_PATHS}" | python3 -c 'import json, sys; [print(path) for path in json.load(sys.stdin)]' | while read -r compose_path; do
+            docker compose "${env_args[@]}" -f "${compose_path}" config >/dev/null
+          done
+
       # ── SonarQube ───────────────────────────────────────────
 
       - uses: aws-actions/configure-aws-credentials@v6
@@ -283,6 +303,9 @@ jobs:
           fi
           if [ "${{ steps.config.outputs.has_terraform }}" = "true" ]; then
             sources="${sources:+$sources,}infrastructure/terraform"
+          fi
+          if [ -z "$sources" ]; then
+            sources="."
           fi
           extra_args=""
           if [ "${{ steps.config.outputs.has_rust }}" = "true" ]; then
@@ -364,11 +387,11 @@ jobs:
       # ── TrueNAS deploy (Docker + Komodo) ────────────────────
 
       - name: Set up Docker Buildx
-        if: inputs.deploy && github.ref == 'refs/heads/main' && steps.config.outputs.has_truenas == 'true'
+        if: inputs.deploy && github.ref == 'refs/heads/main' && steps.config.outputs.has_truenas == 'true' && steps.config.outputs.truenas_images == 'true'
         uses: docker/setup-buildx-action@v4
 
       - name: Build and push Docker images
-        if: inputs.deploy && github.ref == 'refs/heads/main' && steps.config.outputs.has_truenas == 'true'
+        if: inputs.deploy && github.ref == 'refs/heads/main' && steps.config.outputs.has_truenas == 'true' && steps.config.outputs.truenas_images == 'true'
         run: |
           set -euo pipefail
           echo "${{ github.token }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
@@ -445,8 +468,8 @@ jobs:
         with:
           stack-name: ${{ steps.config.outputs.project }}
           repo: ${{ github.repository }}
-          compose-path: compose.yaml
-          image-tag: ${{ github.sha }}
+          compose-path: ${{ steps.config.outputs.truenas_compose_path }}
+          image-tag: ${{ steps.config.outputs.truenas_images == 'true' && github.sha || '' }}
           secrets: ${{ steps.truenas_secrets.outputs.secrets }}
 
       # ── Save caches (after all build/deploy steps) ─────────

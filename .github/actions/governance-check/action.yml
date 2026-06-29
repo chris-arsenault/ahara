@@ -102,6 +102,9 @@ runs:
             "terraform": [
                 ("format check", ["Lint terraform"]),
             ],
+            "vendor": [
+                ("vendor config check", ["Lint vendor config"]),
+            ],
         }
 
         errors = []

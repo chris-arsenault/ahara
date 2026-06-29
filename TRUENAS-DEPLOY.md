@@ -7,10 +7,10 @@
 TrueNAS-hosted services are deployed as Docker Compose stacks managed by [Komodo](https://github.com/moghingold/komodo). The deploy flow:
 
 1. Terraform creates AWS resources (Lambda, SSM params, Cognito client)
-2. Docker image is built and pushed to GHCR
+2. Project-owned Docker images are built and pushed to GHCR when the stack has them
 3. Komodo pulls the compose file from GitHub, sets environment from SSM, and deploys
 
-The shared reusable workflow handles steps 2-3 automatically when `truenas: true` is set in `platform.yml`.
+The shared reusable workflow handles steps 2-3 automatically when `truenas: true` is set in `platform.yml`. Config-only stacks set `truenas_images: false` to skip the image build while keeping the same Komodo deploy path.
 
 ---
 
@@ -30,6 +30,24 @@ The shared reusable workflow handles steps 2-3 automatically when `truenas: true
   Makefile
   CLAUDE.md
 ```
+
+### Vendor project (upstream images)
+
+```
+<project>/
+  compose.yaml           # References upstream images directly
+  .env.example           # Placeholder values for compose validation
+  secret-paths.yml       # SSM paths for compose environment variables
+  config/                # Mounted service config
+  dashboards/            # Provisioned dashboards, if applicable
+  platform.yml
+  Makefile
+  AGENTS.md
+```
+
+Use this layout for platform services such as observability stacks where the
+repo owns configuration for third-party services and wrapping official images
+would add no value.
 
 ### Multi-image project (e.g., airwave)
 
@@ -87,6 +105,26 @@ Note: the Rust binary is compiled for linux-amd64 (GitHub runner architecture), 
 
 ## platform.yml
 
+### Vendor upstream-image stack
+
+```yaml
+project: <name>
+prefix: <name>
+stack:
+  - vendor
+truenas: true
+truenas_images: false
+truenas_compose_path: compose.yaml
+truenas_compose_check_paths:
+  - compose.yaml
+  - compose.cloudwatch.yaml
+```
+
+Deploys the Compose file through Komodo without building or pushing any GHCR
+images. `secret-paths.yml` is still resolved into the Komodo stack environment.
+Include `.env.example` with safe placeholder values so `docker compose config`
+can validate the file in CI.
+
 ### Single image
 
 ```yaml
@@ -117,10 +155,11 @@ images:
 Builds each component from its directory → `ghcr.io/chris-arsenault/<project>/<component>:<sha>`
 
 The `truenas: true` flag tells the shared workflow to:
-1. Build Docker image(s) — single from root, or one per entry in `images`
-2. Push to GHCR at `ghcr.io/chris-arsenault/<project>[/<component>]:<sha>`
-3. Read `secret-paths.yml` for Komodo environment variables
-4. Call the `deploy-truenas` action with stack name = project name
+1. Build Docker image(s) when `truenas_images` is not false — single from root, or one per entry in `images`
+2. Push built images to GHCR at `ghcr.io/chris-arsenault/<project>[/<component>]:<sha>`
+3. Validate each Compose path in `truenas_compose_check_paths`, or `truenas_compose_path` when the check list is omitted
+4. Read `secret-paths.yml` for Komodo environment variables
+5. Call the `deploy-truenas` action with stack name = project name and Compose file = `truenas_compose_path` or `compose.yaml`
 
 ---
 

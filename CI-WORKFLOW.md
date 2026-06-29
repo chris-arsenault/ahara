@@ -40,10 +40,11 @@ The shared workflow reads `platform.yml` and runs the appropriate steps based on
 3. **TypeScript lint + test** — `pnpm install`, `eslint`, `tsc --noEmit`, `vitest` with coverage (auto-detected from `package.json` location)
 4. **Python lint** — `uv sync`, `ruff check`, `ruff format --check` (auto-detected from `Cargo.toml` sibling)
 5. **Terraform lint** — `terraform fmt -check -recursive` in `infrastructure/terraform/`
-6. **SonarQube scan** — auto-configured sources, exclusions, and coverage report paths from stack
-7. **Deploy (main only)** — cargo-lambda build, pnpm build, migrations, terraform apply
-8. **TrueNAS deploy (if configured)** — Docker build, GHCR push, Komodo deploy
-9. **Report** — auto-detects lint/test outcomes and duration via GitHub API
+6. **Vendor config lint** — `docker compose config` for `stack: [vendor]` repos
+7. **SonarQube scan** — auto-configured sources, exclusions, and coverage report paths from stack
+8. **Deploy (main only)** — cargo-lambda build, pnpm build, migrations, terraform apply
+9. **TrueNAS deploy (if configured)** — optional Docker build/GHCR push, then Komodo deploy
+10. **Report** — auto-detects lint/test outcomes and duration via GitHub API
 
 ### What it does NOT do
 
@@ -65,8 +66,14 @@ stack:                   # Declares which lint/build/deploy steps to run
   - typescript           # pnpm eslint, tsc, pnpm build
   - python               # ruff check, ruff format, scripts/build-lambda.sh
   - terraform            # terraform fmt, terraform apply
+  - vendor               # third-party/upstream-image Compose config validation
 migrations: db/migrations  # Optional — enables run-migrations step
 truenas: true            # Optional — enables Docker + Komodo deploy
+truenas_images: false    # Optional — skip GHCR image build for upstream-image Compose stacks
+truenas_compose_path: compose.yaml # Optional — Compose file path for TrueNAS deploy
+truenas_compose_check_paths: # Optional — additional Compose files to lint
+  - compose.yaml
+  - compose.cloudwatch.yaml
 images:                  # Optional — multi-image TrueNAS deploy
   - api                  # Builds api/Dockerfile → ghcr.io/.../project/api:sha
   - web                  # Builds web/Dockerfile → ghcr.io/.../project/web:sha
@@ -81,7 +88,9 @@ Only include stack components your project actually has. The shared workflow ski
 
 `rust_artifacts` is mandatory whenever `rust` is in `stack`. Use `rust_artifacts: {}` for rust code with no deployable artifacts (e.g. a library-only crate). The two sub-keys are independent — a project can declare `lambdas`, `binaries`, both, or neither. `truenas: true` no longer implies a Rust binary build; declare `binaries:` if your Docker image needs one.
 
-When `truenas: true` without `images`, a single image is built from the repo root. When `images` is present, each entry is a component directory containing its own `Dockerfile`, pushed to `ghcr.io/chris-arsenault/{project}/{component}:{sha}`. See [TRUENAS-DEPLOY.md](TRUENAS-DEPLOY.md) for full details.
+When `truenas: true` without `images`, a single image is built from the repo root. When `images` is present, each entry is a component directory containing its own `Dockerfile`, pushed to `ghcr.io/chris-arsenault/{project}/{component}:{sha}`.
+
+`truenas: true` means the repo deploys to TrueNAS through Komodo. Set `truenas_images: false` when that Komodo stack uses upstream images directly and the repo owns only Compose/config files. The workflow deploys the Compose file named by `truenas_compose_path` (default `compose.yaml`), validates every path in `truenas_compose_check_paths`, reads `secret-paths.yml`, and deploys through Komodo, but skips Docker Buildx and GHCR pushes. Use `stack: [vendor]` for these third-party/upstream-image repos. See [TRUENAS-DEPLOY.md](TRUENAS-DEPLOY.md) for full details.
 
 ---
 
