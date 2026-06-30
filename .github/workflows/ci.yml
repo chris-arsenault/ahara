@@ -54,6 +54,35 @@ jobs:
               truenas_compose_path = cfg.get('truenas_compose_path', 'compose.yaml')
               f.write(f"truenas_compose_path={truenas_compose_path}\n")
               f.write(f"truenas_compose_check_paths={json.dumps(cfg.get('truenas_compose_check_paths') or [truenas_compose_path])}\n")
+              dashboards_cfg = (cfg.get("observability") or {}).get("dashboards") or {}
+              has_grafana_dashboards = bool(dashboards_cfg)
+              if dashboards_cfg and not isinstance(dashboards_cfg, dict):
+                  raise SystemExit("platform.yml: observability.dashboards must be a mapping")
+              dashboard_path = dashboards_cfg.get("path", "")
+              dashboard_folder_uid = dashboards_cfg.get("folder_uid", "")
+              dashboard_folder_title = dashboards_cfg.get("folder_title", "")
+              dashboard_prune = dashboards_cfg.get("prune", True)
+              if has_grafana_dashboards:
+                  missing = [
+                      key for key, value in {
+                          "path": dashboard_path,
+                          "folder_uid": dashboard_folder_uid,
+                          "folder_title": dashboard_folder_title,
+                      }.items()
+                      if not isinstance(value, str) or not value.strip()
+                  ]
+                  if missing:
+                      raise SystemExit(
+                          "platform.yml: observability.dashboards missing required key(s): "
+                          + ", ".join(missing)
+                      )
+                  if not isinstance(dashboard_prune, bool):
+                      raise SystemExit("platform.yml: observability.dashboards.prune must be a boolean")
+              f.write(f"has_grafana_dashboards={'true' if has_grafana_dashboards else 'false'}\n")
+              f.write(f"dashboard_path={dashboard_path}\n")
+              f.write(f"dashboard_folder_uid={dashboard_folder_uid}\n")
+              f.write(f"dashboard_folder_title={dashboard_folder_title}\n")
+              f.write(f"dashboard_prune={'true' if dashboard_prune else 'false'}\n")
               # Rust artifacts — explicit declaration of what gets built where
               rust_artifacts = cfg.get("rust_artifacts") or {}
               rust_lambdas = rust_artifacts.get("lambdas") or []
@@ -471,6 +500,17 @@ jobs:
           compose-path: ${{ steps.config.outputs.truenas_compose_path }}
           image-tag: ${{ steps.config.outputs.truenas_images == 'true' && github.sha || '' }}
           secrets: ${{ steps.truenas_secrets.outputs.secrets }}
+
+      # ── Grafana dashboard deploy ───────────────────────────
+
+      - uses: chris-arsenault/ahara/.github/actions/deploy-grafana-dashboards@main
+        if: inputs.deploy && github.ref == 'refs/heads/main' && steps.config.outputs.has_grafana_dashboards == 'true'
+        with:
+          project: ${{ steps.config.outputs.project }}
+          dashboards-path: ${{ steps.config.outputs.dashboard_path }}
+          folder-uid: ${{ steps.config.outputs.dashboard_folder_uid }}
+          folder-title: ${{ steps.config.outputs.dashboard_folder_title }}
+          prune: ${{ steps.config.outputs.dashboard_prune }}
 
       # ── Save caches (after all build/deploy steps) ─────────
 

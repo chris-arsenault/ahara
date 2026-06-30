@@ -225,6 +225,46 @@ Skip this step if your project has no HTTP API.
 
 Use the [`alb-api`](https://github.com/chris-arsenault/ahara-tf-patterns/tree/main/modules/alb-api) module from `ahara-tf-patterns`. It handles Lambda creation, ALB target groups, listener rules with JWT validation, TLS certificates, and DNS — all from a single module call.
 
+### Rust HTTP Lambda Handler Choice
+
+For Rust HTTP APIs deployed through `alb-api`, use [`lambda_http`](https://github.com/awslabs/aws-lambda-rust-runtime/tree/main/lambda-http) as the Lambda request boundary. It is the AWS Labs crate for HTTP Lambda events and keeps request handling aligned with the deployed runtime.
+
+Do not use the Axum-on-Lambda adapter pattern for platform APIs: avoid building an `axum::Router` and passing it to `lambda_http::run`. Axum remains appropriate for long-running HTTP servers such as containers, local platform services, or other non-Lambda deployments. A Lambda API should only use Axum when the project records a specific need that outweighs the simpler `lambda_http` boundary.
+
+Use `lambda_http::{run, service_fn}` and route on the Lambda HTTP request:
+
+```rust
+use std::sync::Arc;
+
+use lambda_http::{run, service_fn, Body, Error, Request, Response};
+
+#[tokio::main]
+async fn main() -> Result<(), Error> {
+    shared::init_tracing();
+    let state = Arc::new(AppState::from_env().await?);
+
+    run(service_fn(move |request: Request| {
+        let state = Arc::clone(&state);
+        async move { handle_request(request, state).await }
+    }))
+    .await
+}
+
+async fn handle_request(
+    request: Request,
+    state: Arc<AppState>,
+) -> Result<Response<Body>, Error> {
+    match (request.method().as_str(), request.uri().path()) {
+        ("GET", "/health") => Ok(Response::builder()
+            .status(200)
+            .body(Body::Text("ok".to_string()))?),
+        _ => Ok(Response::builder()
+            .status(404)
+            .body(Body::Text("not found".to_string()))?),
+    }
+}
+```
+
 ### Single-Lambda API
 
 ```hcl
@@ -350,7 +390,7 @@ Existing allocations:
 
 Use 200+ for consumer projects. Do not reuse a priority.
 
-**CORS:** OPTIONS preflight requests are handled platform-wide by a Lambda at ALB priority 1. Do NOT create per-project OPTIONS listener rules. Your Lambda still needs `tower-http CorsLayer` (or equivalent) to add CORS headers on actual (non-preflight) responses.
+**CORS:** OPTIONS preflight requests are handled platform-wide by a Lambda at ALB priority 1. Do NOT create per-project OPTIONS listener rules. Your Lambda still needs to add CORS headers on actual (non-preflight) responses. For Rust Lambda APIs, prefer a small `lambda_http::Response` helper over pulling in Axum/Tower only for CORS; `tower-http CorsLayer` is acceptable only in services that already intentionally use Tower.
 
 ---
 

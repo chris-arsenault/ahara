@@ -35,6 +35,26 @@ runs:
             print(f"::error::{config_path} must declare a 'stack' list (e.g. rust, typescript, terraform)")
             sys.exit(1)
 
+        observability = config.get("observability") or {}
+        if not isinstance(observability, dict):
+            print(f"::error::{config_path}: 'observability' must be a mapping when present")
+            sys.exit(1)
+        dashboards = observability.get("dashboards") or {}
+        if dashboards:
+            if not isinstance(dashboards, dict):
+                print(f"::error::{config_path}: 'observability.dashboards' must be a mapping")
+                sys.exit(1)
+            required_dashboard_keys = ["path", "folder_uid", "folder_title"]
+            for key in required_dashboard_keys:
+                value = dashboards.get(key)
+                if not isinstance(value, str) or not value.strip():
+                    print(f"::error::{config_path}: observability.dashboards.{key} is required")
+                    sys.exit(1)
+            prune = dashboards.get("prune", True)
+            if not isinstance(prune, bool):
+                print(f"::error::{config_path}: observability.dashboards.prune must be a boolean")
+                sys.exit(1)
+
         # If rust is in stack, rust_artifacts must be declared explicitly.
         # Empty {} is allowed (rust code with no deployable artifacts, e.g. libraries).
         if "rust" in stack:

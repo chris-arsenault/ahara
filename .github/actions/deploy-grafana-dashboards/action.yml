@@ -1,0 +1,38 @@
+name: Deploy Grafana dashboards
+description: Deploy product-owned Grafana dashboards through the Ahara dashboard deploy Lambda.
+
+inputs:
+  project:
+    description: Ahara project key from platform.yml.
+    required: true
+  dashboards-path:
+    description: Directory containing Grafana dashboard JSON files.
+    required: true
+  folder-uid:
+    description: Stable Grafana folder UID for this product domain.
+    required: true
+  folder-title:
+    description: Grafana folder title for this product domain.
+    required: true
+  prune:
+    description: Delete previously managed dashboards in the folder that are no longer present.
+    required: false
+    default: "true"
+  region:
+    description: AWS region for SSM and Lambda.
+    required: false
+    default: us-east-1
+
+runs:
+  using: composite
+  steps:
+    - name: Deploy Grafana dashboards
+      env:
+        DASHBOARDS_PATH: ${{ inputs.dashboards-path }}
+        FOLDER_TITLE: ${{ inputs.folder-title }}
+        FOLDER_UID: ${{ inputs.folder-uid }}
+        PROJECT: ${{ inputs.project }}
+        PRUNE: ${{ inputs.prune }}
+        REGION: ${{ inputs.region }}
+      run: python3 "$GITHUB_ACTION_PATH/deploy.py"
+      shell: bash

@@ -117,7 +117,6 @@ truenas_images: false
 truenas_compose_path: compose.yaml
 truenas_compose_check_paths:
   - compose.yaml
-  - compose.cloudwatch.yaml
 ```
 
 Deploys the Compose file through Komodo without building or pushing any GHCR

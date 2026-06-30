@@ -44,7 +44,8 @@ The shared workflow reads `platform.yml` and runs the appropriate steps based on
 7. **SonarQube scan** — auto-configured sources, exclusions, and coverage report paths from stack
 8. **Deploy (main only)** — cargo-lambda build, pnpm build, migrations, terraform apply
 9. **TrueNAS deploy (if configured)** — optional Docker build/GHCR push, then Komodo deploy
-10. **Report** — auto-detects lint/test outcomes and duration via GitHub API
+10. **Grafana dashboard deploy (if configured)** — product-owned dashboards are pushed through the shared dashboard deploy Lambda
+11. **Report** — auto-detects lint/test outcomes and duration via GitHub API
 
 ### What it does NOT do
 
@@ -73,7 +74,6 @@ truenas_images: false    # Optional — skip GHCR image build for upstream-image
 truenas_compose_path: compose.yaml # Optional — Compose file path for TrueNAS deploy
 truenas_compose_check_paths: # Optional — additional Compose files to lint
   - compose.yaml
-  - compose.cloudwatch.yaml
 images:                  # Optional — multi-image TrueNAS deploy
   - api                  # Builds api/Dockerfile → ghcr.io/.../project/api:sha
   - web                  # Builds web/Dockerfile → ghcr.io/.../project/web:sha
@@ -82,6 +82,12 @@ rust_artifacts:          # Required if 'rust' in stack — explicit declaration 
     - my-lambda
   binaries:              # Cargo bin → image dir mapping; built via cargo build → <image>/dist/<bin> (docker consumes)
     - { bin: my-server, image: backend }
+observability:           # Optional — deploy product-owned Grafana dashboards after the app deploys
+  dashboards:
+    path: observability/dashboards
+    folder_uid: my-product
+    folder_title: My Product
+    prune: true
 ```
 
 Only include stack components your project actually has. The shared workflow skips steps for missing components.
@@ -91,6 +97,26 @@ Only include stack components your project actually has. The shared workflow ski
 When `truenas: true` without `images`, a single image is built from the repo root. When `images` is present, each entry is a component directory containing its own `Dockerfile`, pushed to `ghcr.io/chris-arsenault/{project}/{component}:{sha}`.
 
 `truenas: true` means the repo deploys to TrueNAS through Komodo. Set `truenas_images: false` when that Komodo stack uses upstream images directly and the repo owns only Compose/config files. The workflow deploys the Compose file named by `truenas_compose_path` (default `compose.yaml`), validates every path in `truenas_compose_check_paths`, reads `secret-paths.yml`, and deploys through Komodo, but skips Docker Buildx and GHCR pushes. Use `stack: [vendor]` for these third-party/upstream-image repos. See [TRUENAS-DEPLOY.md](TRUENAS-DEPLOY.md) for full details.
+
+`observability.dashboards` lets a product repo own its dashboard JSON without
+redeploying Grafana. The source files live in the product repo, usually
+`observability/dashboards/*.json`; each dashboard JSON must have a stable
+Grafana `uid` and `title`. On `main`, the shared workflow validates the JSON
+and invokes the platform Grafana dashboard deploy Lambda, which reads the
+Grafana service-account token from SSM and upserts dashboards into the shared
+Grafana instance. Set `prune: true` to delete previously managed dashboards in
+that folder when they are removed from source.
+
+The Lambda expects a Grafana service-account token in SSM at
+`/ahara/observability/grafana-dashboard-deployer-token`. The token should have
+enough Grafana permissions to create/update folders and dashboards. Product
+repos never receive this token; they only get permission to invoke the deploy
+Lambda.
+
+Any repo that declares `observability.dashboards` must have the
+`grafana-dashboard-deploy` policy module attached to its deployer role in
+`ahara-infra`; otherwise CI will fail when it tries to read the deployer
+function name or invoke the Lambda.
 
 ---
 
@@ -241,3 +267,4 @@ The shared workflow handles all lint/test/sonar/report. Only deploy is custom.
 | `governance-check` | Validates workflow against platform.yml stack |
 | `run-migrations` | Upload and run database migrations |
 | `deploy-truenas` | Docker + Komodo deploy for TrueNAS services |
+| `deploy-grafana-dashboards` | Deploy product-owned Grafana dashboards through the shared Lambda |

@@ -4,3 +4,5 @@
 .claude/
 .shuttlecraft/
 drift-output.txt
+__pycache__/
+*.py[cod]

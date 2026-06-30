@@ -24,4 +24,6 @@ All three layers share a single Terraform state (`ahara/infra.tfstate`) and depl
 
 - `ahara-infra` — single consolidated infrastructure repo; Rust Lambda workspace in `backend/`, platform migrations in `db/migrations/`, one OIDC deployer role for the whole stack
 - `nas-sonarqube` — SonarQube on TrueNAS, CI token Lambda
+- `nas-falkordb` — FalkorDB on TrueNAS, upstream-image Komodo stack
+- `nas-text-embeddings-inference` — Text Embeddings Inference on TrueNAS, upstream-image Komodo stack
 - `ahara-portal` — platform front door, user admin, auth management

@@ -8,6 +8,8 @@ Index repo for the platform layer — shared AWS infrastructure, identity, deplo
 |------|---------|------|
 | [ahara-infra](https://github.com/chris-arsenault/ahara-infra) | Consolidated AWS infrastructure — IAM/OIDC/deployer roles (control), VPC/ALB/VPN/DNS (network), Cognito/RDS/migrations/CI ingest/observability (services) — single Terraform state, plus the Rust Lambda workspace and platform DB migrations | `~/src/ahara-infra` |
 | [nas-sonarqube](https://github.com/chris-arsenault/nas-sonarqube) | SonarQube on TrueNAS — Docker Compose, CI token Lambda | `~/src/nas-sonarqube` |
+| [nas-falkordb](https://github.com/chris-arsenault/nas-falkordb) | FalkorDB on TrueNAS — upstream-image Docker Compose deployed through Komodo | `~/src/nas-falkordb` |
+| [nas-text-embeddings-inference](https://github.com/chris-arsenault/nas-text-embeddings-inference) | Text Embeddings Inference on TrueNAS — upstream-image Docker Compose deployed through Komodo | `~/src/nas-text-embeddings-inference` |
 | [ahara-tf-patterns](https://github.com/chris-arsenault/ahara-tf-patterns) | Reusable Terraform modules — ALB API, SPA, static site, Cognito, Lambda | `~/src/ahara-tf-patterns` |
 
 ## Deploy Order
