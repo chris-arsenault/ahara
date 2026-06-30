@@ -28,6 +28,10 @@ inputs:
         COGNITO_CLIENT_ID=/ahara/cognito/client-id
     required: false
     default: ""
+  roles-anywhere:
+    description: JSON array of TrueNAS Roles Anywhere workloads from platform.yml.
+    required: false
+    default: "[]"
 
 runs:
   using: composite
@@ -185,6 +189,81 @@ runs:
         ")
         fi
 
+        ROLES_ANYWHERE_ENV_JSON=$(ROLES_ANYWHERE_INPUT='${{ inputs.roles-anywhere }}' STACK_NAME='${{ inputs.stack-name }}' REGION="${REGION}" python3 << 'PYEOF'
+        import json
+        import os
+        import re
+        import secrets
+        import subprocess
+        import time
+
+        region = os.environ["REGION"]
+        stack = os.environ["STACK_NAME"]
+        workloads = json.loads(os.environ.get("ROLES_ANYWHERE_INPUT") or "[]")
+
+        if not workloads:
+            print("{}")
+            raise SystemExit(0)
+
+        if not re.fullmatch(r"[a-z0-9][a-z0-9-]*", stack):
+            raise SystemExit(f"invalid stack name for Roles Anywhere: {stack}")
+
+        def aws_output(*args):
+            return subprocess.check_output(
+                ["aws", *args, "--region", region],
+                text=True,
+            ).strip()
+
+        def get_param(name):
+            return aws_output(
+                "ssm", "get-parameter",
+                "--name", name,
+                "--query", "Parameter.Value",
+                "--output", "text",
+            )
+
+        discovery = {
+            "TRUST_ANCHOR_ARN": get_param("/ahara/truenas-roles-anywhere/trust-anchor-arn"),
+            "PROFILE_ARN": get_param("/ahara/truenas-roles-anywhere/profile-arn"),
+            "ENTRY_ROLE_ARN": get_param("/ahara/truenas-roles-anywhere/entry-role-arn"),
+            "ENROLLMENT_URL": get_param("/ahara/truenas-roles-anywhere/enrollment-url"),
+        }
+
+        env = {}
+        expires_at = int(time.time()) + 3600
+        for workload in workloads:
+            name = workload["name"]
+            env_prefix = workload["env_prefix"]
+            if not re.fullmatch(r"[a-z0-9][a-z0-9-]*", name):
+                raise SystemExit(f"invalid Roles Anywhere workload name: {name}")
+            if not re.fullmatch(r"[A-Z][A-Z0-9_]*", env_prefix):
+                raise SystemExit(f"invalid Roles Anywhere env_prefix for {name}: {env_prefix}")
+
+            workload_id = f"spiffe://ahara/truenas/{stack}/{name}"
+            token = secrets.token_urlsafe(32)
+            token_path = f"/ahara/truenas-roles-anywhere/enrollment/{stack}/{name}/token"
+            role_path = f"/ahara/truenas-roles-anywhere/workloads/{stack}/{name}/role-arn"
+            role_arn = get_param(role_path)
+
+            subprocess.check_call([
+                "aws", "ssm", "put-parameter",
+                "--name", token_path,
+                "--type", "SecureString",
+                "--value", json.dumps({"token": token, "expires_at": expires_at}),
+                "--overwrite",
+                "--region", region,
+            ], stdout=subprocess.DEVNULL)
+
+            env[f"{env_prefix}_WORKLOAD_ID"] = workload_id
+            env[f"{env_prefix}_ENROLLMENT_TOKEN"] = token
+            env[f"{env_prefix}_ROLE_ARN"] = role_arn
+            for key, value in discovery.items():
+                env[f"{env_prefix}_{key}"] = value
+
+        print(json.dumps(env))
+        PYEOF
+        )
+
         # Build the Lambda payload:
         # 1. Resolve SSM secrets and set stack environment (written to .env for compose)
         # 2. Deploy the stack
@@ -194,9 +273,11 @@ runs:
 
         secrets = json.loads(sys.argv[1])
         image_tag = sys.argv[3]
+        roles_anywhere = json.loads(sys.argv[4])
 
         # Build environment: secrets from SSM + image tag
         env_vars = dict(secrets)
+        env_vars.update(roles_anywhere)
         if image_tag:
             env_vars['IMAGE_TAG'] = image_tag
 
@@ -213,7 +294,7 @@ runs:
         })
 
         print(json.dumps({'actions': actions}))
-        " "$SECRETS_JSON" "${{ inputs.stack-name }}" "${{ inputs.image-tag }}")
+        " "$SECRETS_JSON" "${{ inputs.stack-name }}" "${{ inputs.image-tag }}" "$ROLES_ANYWHERE_ENV_JSON")
 
         echo "Deploying ${{ inputs.stack-name }} to TrueNAS..."
         RESULT=$(invoke_lambda "${PAYLOAD}")

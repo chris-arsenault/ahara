@@ -74,6 +74,9 @@ truenas_images: false    # Optional — skip GHCR image build for upstream-image
 truenas_compose_path: compose.yaml # Optional — Compose file path for TrueNAS deploy
 truenas_compose_check_paths: # Optional — additional Compose files to lint
   - compose.yaml
+truenas_roles_anywhere:  # Optional — AWS identities for TrueNAS workloads
+  backup:
+    env_prefix: AWS_RA_BACKUP
 images:                  # Optional — multi-image TrueNAS deploy
   - api                  # Builds api/Dockerfile → ghcr.io/.../project/api:sha
   - web                  # Builds web/Dockerfile → ghcr.io/.../project/web:sha
@@ -97,6 +100,8 @@ Only include stack components your project actually has. The shared workflow ski
 When `truenas: true` without `images`, a single image is built from the repo root. When `images` is present, each entry is a component directory containing its own `Dockerfile`, pushed to `ghcr.io/chris-arsenault/{project}/{component}:{sha}`.
 
 `truenas: true` means the repo deploys to TrueNAS through Komodo. Set `truenas_images: false` when that Komodo stack uses upstream images directly and the repo owns only Compose/config files. The workflow deploys the Compose file named by `truenas_compose_path` (default `compose.yaml`), validates every path in `truenas_compose_check_paths`, reads `secret-paths.yml`, and deploys through Komodo, but skips Docker Buildx and GHCR pushes. Use `stack: [vendor]` for these third-party/upstream-image repos. See [TRUENAS-DEPLOY.md](TRUENAS-DEPLOY.md) for full details.
+
+`truenas_roles_anywhere` declares IAM Roles Anywhere identities for TrueNAS services. For each entry, the shared deploy workflow mints a one-hour enrollment token, injects token plus public Roles Anywhere discovery values using `env_prefix`, and expects app Terraform to create the matching workload role with the shared `truenas-roles-anywhere-workload` module. See [AWS Access from TrueNAS Services](TRUENAS-DEPLOY.md#aws-access-from-truenas-services).
 
 `observability.dashboards` lets a product repo own its dashboard JSON without
 redeploying Grafana. The source files live in the product repo, usually

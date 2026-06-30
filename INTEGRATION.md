@@ -134,7 +134,7 @@ For capabilities outside the shared modules, use primitives directly. These name
 | `bedrock-inference` | Project uses Bedrock model invocation |
 | `sns` | Project publishes to SNS topics |
 | `secrets-manager` | Project uses AWS Secrets Manager |
-| `komodo-deploy` | Project deploys via Komodo to TrueNAS |
+| `komodo-deploy` | Project deploys via Komodo to TrueNAS; also covers project-scoped TrueNAS Roles Anywhere workload roles and enrollment tokens |
 | `ec2-vpc-compute` / `ec2-security-groups` | Project manages EC2 / VPC resources |
 | `rds` | Project manages RDS instances (`ahara-infra` only) |
 | `cognito-pool` | Project manages the shared Cognito user pool (`ahara-infra` only) |

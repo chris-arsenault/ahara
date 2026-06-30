@@ -54,6 +54,20 @@ jobs:
               truenas_compose_path = cfg.get('truenas_compose_path', 'compose.yaml')
               f.write(f"truenas_compose_path={truenas_compose_path}\n")
               f.write(f"truenas_compose_check_paths={json.dumps(cfg.get('truenas_compose_check_paths') or [truenas_compose_path])}\n")
+              truenas_roles_anywhere = cfg.get('truenas_roles_anywhere') or {}
+              if truenas_roles_anywhere and not isinstance(truenas_roles_anywhere, dict):
+                  raise SystemExit("platform.yml: truenas_roles_anywhere must be a mapping")
+              normalized_ra = []
+              for name, workload in truenas_roles_anywhere.items():
+                  if not isinstance(name, str) or not name.strip():
+                      raise SystemExit("platform.yml: truenas_roles_anywhere workload names must be non-empty strings")
+                  if not isinstance(workload, dict):
+                      workload = {}
+                  env_prefix = workload.get("env_prefix") or f"AWS_RA_{name.upper().replace('-', '_')}"
+                  if not isinstance(env_prefix, str) or not env_prefix.strip():
+                      raise SystemExit(f"platform.yml: truenas_roles_anywhere.{name}.env_prefix must be a string")
+                  normalized_ra.append({"name": name, "env_prefix": env_prefix})
+              f.write(f"truenas_roles_anywhere={json.dumps(normalized_ra)}\n")
               dashboards_cfg = (cfg.get("observability") or {}).get("dashboards") or {}
               has_grafana_dashboards = bool(dashboards_cfg)
               if dashboards_cfg and not isinstance(dashboards_cfg, dict):
@@ -500,6 +514,7 @@ jobs:
           compose-path: ${{ steps.config.outputs.truenas_compose_path }}
           image-tag: ${{ steps.config.outputs.truenas_images == 'true' && github.sha || '' }}
           secrets: ${{ steps.truenas_secrets.outputs.secrets }}
+          roles-anywhere: ${{ steps.config.outputs.truenas_roles_anywhere }}
 
       # ── Grafana dashboard deploy ───────────────────────────
 
