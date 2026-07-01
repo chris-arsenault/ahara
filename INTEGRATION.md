@@ -602,6 +602,17 @@ No OTP seed or MFA secret belongs in runtime config or SSM. Enrollment happens o
 
 **To grant user access**: add an entry to the `apps` map in DynamoDB table `websites-user-access` (key: username, field: `apps.<name>` = role string). The pre-auth Lambda checks this on every login.
 
+### Machine-to-machine (client-credentials) clients
+
+The two clients above are for **users** (authorization-code flow). For
+**service-to-service** auth — no human, no browser — use a Cognito
+`client_credentials` client against a resource server scope. The platform's
+telemetry ingest is the reference implementation: producers obtain a token for
+scope `observability/ingest` and present it as a bearer to a JWT-validating
+gateway. See [OBSERVABILITY.md](OBSERVABILITY.md) for the full pattern (resource
+server, confidential M2M client, SSM credential distribution, Envoy JWT
+validation, and Alloy/OTel-SDK producer wiring) before rolling your own.
+
 ---
 
 ## Step 7: Frontend Deployment

@@ -27,6 +27,7 @@ Deploy: `cd ~/src/ahara-infra && ./scripts/deploy.sh`
 - `INTEGRATION.md` — canonical instructions for AI agents integrating projects with the platform
 - `CI-WORKFLOW.md` — shared reusable CI/CD workflow, platform.yml, governance, SonarQube
 - `TRUENAS-DEPLOY.md` — TrueNAS deploy pattern (Docker, Komodo, secret-paths.yml)
+- `OBSERVABILITY.md` — telemetry stack, the Cognito M2M + Envoy JWT ingest-auth pattern, and how producers send authenticated metrics/logs/traces
 - `.github/workflows/ci.yml` — shared reusable CI/CD workflow (called by all standard projects)
 - `.github/actions/` — `sonar-scan`, `report-build`, `governance-check`, `run-migrations`, `deploy-truenas`
 
