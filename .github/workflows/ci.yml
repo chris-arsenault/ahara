@@ -47,6 +47,7 @@ jobs:
               f.write(f"has_python={'true' if 'python' in stack else 'false'}\n")
               f.write(f"has_terraform={'true' if 'terraform' in stack else 'false'}\n")
               f.write(f"has_vendor={'true' if 'vendor' in stack else 'false'}\n")
+              f.write(f"has_android={'true' if 'android' in stack else 'false'}\n")
               f.write(f"has_migrations={'true' if cfg.get('migrations') else 'false'}\n")
               f.write(f"migrations_dir={cfg.get('migrations', '')}\n")
               f.write(f"has_truenas={'true' if cfg.get('truenas') else 'false'}\n")
@@ -106,6 +107,38 @@ jobs:
               f.write(f"rust_lambdas={json.dumps(rust_lambdas)}\n")
               f.write(f"rust_binaries={json.dumps(rust_binaries)}\n")
               f.write(f"rust_telemetry_adoption={'true' if cfg.get('rust_telemetry_adoption') else 'false'}\n")
+              android_cfg = cfg.get("android") or {}
+              if "android" in stack and not isinstance(android_cfg, dict):
+                  raise SystemExit("platform.yml: android must be a mapping when present")
+              android_dir = android_cfg.get("dir", "android")
+              android_gradle_task = android_cfg.get("ci_task", "assembleDebug")
+              f.write(f"android_dir={android_dir}\n")
+              f.write(f"android_gradle_task={android_gradle_task}\n")
+              fdroid_cfg = cfg.get("fdroid") or {}
+              has_fdroid = bool(fdroid_cfg)
+              if fdroid_cfg and not isinstance(fdroid_cfg, dict):
+                  raise SystemExit("platform.yml: fdroid must be a mapping when present")
+              fdroid_repo_name = fdroid_cfg.get("repo_name", f"{cfg['project']} F-Droid")
+              fdroid_repo_description = fdroid_cfg.get("repo_description", f"{cfg['project']} Android packages")
+              fdroid_hostname = fdroid_cfg.get("hostname", "")
+              fdroid_app_id = fdroid_cfg.get("app_id", "")
+              fdroid_apk_glob = fdroid_cfg.get("apk_glob", "app/build/outputs/apk/release/*.apk")
+              if has_fdroid:
+                  missing = [
+                      key for key, value in {
+                          "hostname": fdroid_hostname,
+                          "app_id": fdroid_app_id,
+                      }.items()
+                      if not isinstance(value, str) or not value.strip()
+                  ]
+                  if missing:
+                      raise SystemExit("platform.yml: fdroid missing required key(s): " + ", ".join(missing))
+              f.write(f"has_fdroid={'true' if has_fdroid else 'false'}\n")
+              f.write(f"fdroid_repo_name={fdroid_repo_name}\n")
+              f.write(f"fdroid_repo_description={fdroid_repo_description}\n")
+              f.write(f"fdroid_hostname={fdroid_hostname}\n")
+              f.write(f"fdroid_app_id={fdroid_app_id}\n")
+              f.write(f"fdroid_apk_glob={fdroid_apk_glob}\n")
               rust_shared_crates_dir = cfg.get("rust_shared_crates_dir", "")
               f.write(f"has_rust_shared_crates={'true' if rust_shared_crates_dir else 'false'}\n")
               f.write(f"rust_shared_crates_dir={rust_shared_crates_dir}\n")
@@ -268,6 +301,30 @@ jobs:
           path: ~/.local/share/pnpm/store/v10
           key: pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}-${{ github.sha }}
 
+      # ── Android ────────────────────────────────────────────
+
+      - uses: actions/setup-java@v6
+        if: steps.config.outputs.has_android == 'true'
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: android-actions/setup-android@v3
+        if: steps.config.outputs.has_android == 'true'
+
+      - name: Install Gradle
+        if: steps.config.outputs.has_android == 'true'
+        run: |
+          set -euo pipefail
+          curl -fsSL -o /tmp/gradle.zip https://services.gradle.org/distributions/gradle-8.9-bin.zip
+          unzip -q /tmp/gradle.zip -d /tmp
+          echo "/tmp/gradle-8.9/bin" >> "$GITHUB_PATH"
+
+      - name: Build Android
+        if: steps.config.outputs.has_android == 'true'
+        working-directory: ${{ steps.config.outputs.android_dir }}
+        run: gradle --no-daemon ${{ steps.config.outputs.android_gradle_task }}
+
       # ── Python ──────────────────────────────────────────────
 
       - uses: actions/setup-python@v6
@@ -405,6 +462,98 @@ jobs:
         if: inputs.deploy && github.ref == 'refs/heads/main' && steps.config.outputs.has_typescript == 'true'
         working-directory: ${{ steps.config.outputs.typescript_dir }}
         run: pnpm run build
+
+      - name: Publish F-Droid repo
+        if: inputs.deploy && github.ref == 'refs/heads/main' && steps.config.outputs.has_fdroid == 'true'
+        working-directory: ${{ steps.config.outputs.android_dir }}
+        env:
+          FDROID_REPO_NAME: ${{ steps.config.outputs.fdroid_repo_name }}
+          FDROID_REPO_DESCRIPTION: ${{ steps.config.outputs.fdroid_repo_description }}
+          FDROID_HOSTNAME: ${{ steps.config.outputs.fdroid_hostname }}
+          FDROID_APP_ID: ${{ steps.config.outputs.fdroid_app_id }}
+          FDROID_APK_GLOB: ${{ steps.config.outputs.fdroid_apk_glob }}
+          PROJECT_PREFIX: ${{ steps.config.outputs.project }}
+        run: |
+          set -euo pipefail
+          python3 -m pip install --user fdroidserver
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          export PATH="$HOME/.local/bin:$PATH"
+
+          ACCOUNT_ID="$(aws sts get-caller-identity --query Account --output text)"
+          REPO_BUCKET="${PROJECT_PREFIX}-fdroid-${ACCOUNT_ID}"
+          KEY_BUCKET="${PROJECT_PREFIX}-fdroid-keys-${ACCOUNT_ID}"
+          KEY_PREFIX="private/signing"
+          WORK="$(mktemp -d)"
+          trap 'rm -rf "$WORK"' EXIT
+          mkdir -p "$WORK/keys"
+
+          fetch_or_create_key() {
+            local name="$1"
+            local alias="$2"
+            local path="$WORK/keys/${name}.p12"
+            if ! aws s3 cp "s3://${KEY_BUCKET}/${KEY_PREFIX}/${name}.p12" "$path" >/dev/null 2>&1; then
+              keytool -genkeypair \
+                -keystore "$path" \
+                -storetype PKCS12 \
+                -storepass changeit \
+                -keypass changeit \
+                -alias "$alias" \
+                -keyalg RSA \
+                -keysize 4096 \
+                -validity 10000 \
+                -dname "CN=${FDROID_REPO_NAME}, O=Ahara"
+              aws s3 cp "$path" "s3://${KEY_BUCKET}/${KEY_PREFIX}/${name}.p12" >/dev/null
+            fi
+            printf '%s' "$path"
+          }
+
+          APP_KEYSTORE="$(fetch_or_create_key app-upload airwave)"
+          REPO_KEYSTORE="$(fetch_or_create_key fdroid-repo fdroid)"
+
+          ANDROID_SIGNING_STORE_FILE="$APP_KEYSTORE" \
+          ANDROID_SIGNING_STORE_PASSWORD=changeit \
+          ANDROID_SIGNING_KEY_ALIAS=airwave \
+          ANDROID_SIGNING_KEY_PASSWORD=changeit \
+            gradle --no-daemon assembleRelease
+
+          shopt -s nullglob
+          apk_matches=( $FDROID_APK_GLOB )
+          if [ "${#apk_matches[@]}" -ne 1 ]; then
+            echo "::error::Expected exactly one APK matching ${FDROID_APK_GLOB}, found ${#apk_matches[@]}"
+            exit 1
+          fi
+
+          REPO="$WORK/fdroid"
+          mkdir -p "$REPO/repo" "$REPO/metadata"
+          cp "${apk_matches[0]}" "$REPO/repo/${FDROID_APP_ID}.apk"
+          cat > "$REPO/config.yml" << EOF
+          repo_url: "https://${FDROID_HOSTNAME}/repo"
+          repo_name: "${FDROID_REPO_NAME}"
+          repo_description: "${FDROID_REPO_DESCRIPTION}"
+          archive_older: 0
+          keystore: "${REPO_KEYSTORE}"
+          repo_keyalias: "fdroid"
+          keystorepass: "changeit"
+          keypass: "changeit"
+          keydname: "CN=${FDROID_REPO_NAME}, O=Ahara"
+          EOF
+          cat > "$REPO/metadata/${FDROID_APP_ID}.yml" << EOF
+          Categories:
+            - Multimedia
+          License: MIT
+          AuthorName: Ahara
+          SourceCode: https://github.com/${{ github.repository }}
+          IssueTracker: https://github.com/${{ github.repository }}/issues
+          AutoName: ${FDROID_REPO_NAME}
+          RepoType: git
+          Repo: https://github.com/${{ github.repository }}.git
+          Builds: []
+          EOF
+          (cd "$REPO" && fdroid update --create-metadata --rename-apks)
+          aws s3 sync "$REPO/repo/" "s3://${REPO_BUCKET}/repo/" \
+            --delete \
+            --cache-control "public,max-age=300"
+          echo "Published F-Droid repo to https://${FDROID_HOSTNAME}/repo"
 
       - name: Build Lambda (Python)
         if: inputs.deploy && github.ref == 'refs/heads/main' && steps.config.outputs.has_python == 'true'
