@@ -126,7 +126,6 @@ jobs:
               if has_fdroid:
                   missing = [
                       key for key, value in {
-                          "hostname": fdroid_hostname,
                           "app_id": fdroid_app_id,
                       }.items()
                       if not isinstance(value, str) or not value.strip()
@@ -479,10 +478,14 @@ jobs:
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
           export PATH="$HOME/.local/bin:$PATH"
 
-          ACCOUNT_ID="$(aws sts get-caller-identity --query Account --output text)"
-          REPO_BUCKET="${PROJECT_PREFIX}-fdroid-${ACCOUNT_ID}"
-          KEY_BUCKET="${PROJECT_PREFIX}-fdroid-keys-${ACCOUNT_ID}"
-          KEY_PREFIX="private/signing"
+          REPO_BUCKET="$(aws ssm get-parameter --name /ahara/fdroid/repo-bucket --query Parameter.Value --output text)"
+          KEY_BUCKET="$(aws ssm get-parameter --name /ahara/fdroid/signing-bucket --query Parameter.Value --output text)"
+          DISTRIBUTION_ID="$(aws ssm get-parameter --name /ahara/fdroid/distribution-id --query Parameter.Value --output text)"
+          if [ -z "$FDROID_HOSTNAME" ]; then
+            FDROID_HOSTNAME="$(aws ssm get-parameter --name /ahara/fdroid/hostname --query Parameter.Value --output text)"
+          fi
+          APP_KEY_NAME="apps/${FDROID_APP_ID}/upload"
+          REPO_KEY_NAME="repo/signing"
           WORK="$(mktemp -d)"
           trap 'rm -rf "$WORK"' EXIT
           mkdir -p "$WORK/keys"
@@ -490,8 +493,9 @@ jobs:
           fetch_or_create_key() {
             local name="$1"
             local alias="$2"
-            local path="$WORK/keys/${name}.p12"
-            if ! aws s3 cp "s3://${KEY_BUCKET}/${KEY_PREFIX}/${name}.p12" "$path" >/dev/null 2>&1; then
+            local safe_name="${name//\//-}"
+            local path="$WORK/keys/${safe_name}.p12"
+            if ! aws s3 cp "s3://${KEY_BUCKET}/signing/${name}.p12" "$path" >/dev/null 2>&1; then
               keytool -genkeypair \
                 -keystore "$path" \
                 -storetype PKCS12 \
@@ -502,17 +506,17 @@ jobs:
                 -keysize 4096 \
                 -validity 10000 \
                 -dname "CN=${FDROID_REPO_NAME}, O=Ahara"
-              aws s3 cp "$path" "s3://${KEY_BUCKET}/${KEY_PREFIX}/${name}.p12" >/dev/null
+              aws s3 cp "$path" "s3://${KEY_BUCKET}/signing/${name}.p12" >/dev/null
             fi
             printf '%s' "$path"
           }
 
-          APP_KEYSTORE="$(fetch_or_create_key app-upload airwave)"
-          REPO_KEYSTORE="$(fetch_or_create_key fdroid-repo fdroid)"
+          APP_KEYSTORE="$(fetch_or_create_key "$APP_KEY_NAME" app)"
+          REPO_KEYSTORE="$(fetch_or_create_key "$REPO_KEY_NAME" fdroid)"
 
           ANDROID_SIGNING_STORE_FILE="$APP_KEYSTORE" \
           ANDROID_SIGNING_STORE_PASSWORD=changeit \
-          ANDROID_SIGNING_KEY_ALIAS=airwave \
+          ANDROID_SIGNING_KEY_ALIAS=app \
           ANDROID_SIGNING_KEY_PASSWORD=changeit \
             gradle --no-daemon assembleRelease
 
@@ -525,6 +529,7 @@ jobs:
 
           REPO="$WORK/fdroid"
           mkdir -p "$REPO/repo" "$REPO/metadata"
+          aws s3 sync "s3://${REPO_BUCKET}/repo/" "$REPO/repo/" || true
           cp "${apk_matches[0]}" "$REPO/repo/${FDROID_APP_ID}.apk"
           cat > "$REPO/config.yml" << EOF
           repo_url: "https://${FDROID_HOSTNAME}/repo"
@@ -553,6 +558,9 @@ jobs:
           aws s3 sync "$REPO/repo/" "s3://${REPO_BUCKET}/repo/" \
             --delete \
             --cache-control "public,max-age=300"
+          aws cloudfront create-invalidation \
+            --distribution-id "$DISTRIBUTION_ID" \
+            --paths "/repo/*" >/dev/null
           echo "Published F-Droid repo to https://${FDROID_HOSTNAME}/repo"
 
       - name: Build Lambda (Python)
