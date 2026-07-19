@@ -462,7 +462,7 @@ jobs:
         working-directory: ${{ steps.config.outputs.typescript_dir }}
         run: pnpm run build
 
-      - name: Publish F-Droid repo
+      - name: Publish to shared F-Droid repo
         if: inputs.deploy && github.ref == 'refs/heads/main' && steps.config.outputs.has_fdroid == 'true'
         working-directory: ${{ steps.config.outputs.android_dir }}
         env:
@@ -471,7 +471,6 @@ jobs:
           FDROID_HOSTNAME: ${{ steps.config.outputs.fdroid_hostname }}
           FDROID_APP_ID: ${{ steps.config.outputs.fdroid_app_id }}
           FDROID_APK_GLOB: ${{ steps.config.outputs.fdroid_apk_glob }}
-          PROJECT_PREFIX: ${{ steps.config.outputs.project }}
         run: |
           set -euo pipefail
           python3 -m pip install --user fdroidserver
@@ -484,65 +483,52 @@ jobs:
           if [ -z "$FDROID_HOSTNAME" ]; then
             FDROID_HOSTNAME="$(aws ssm get-parameter --name /ahara/fdroid/hostname --query Parameter.Value --output text)"
           fi
-          APP_KEY_NAME="apps/${FDROID_APP_ID}/upload"
-          REPO_KEY_NAME="repo/signing"
-          WORK="$(mktemp -d)"
-          trap 'rm -rf "$WORK"' EXIT
-          mkdir -p "$WORK/keys"
 
-          fetch_or_create_key() {
-            local name="$1"
-            local alias="$2"
-            local safe_name="${name//\//-}"
-            local path="$WORK/keys/${safe_name}.p12"
-            if ! aws s3 cp "s3://${KEY_BUCKET}/signing/${name}.p12" "$path" >/dev/null 2>&1; then
-              keytool -genkeypair \
-                -keystore "$path" \
-                -storetype PKCS12 \
-                -storepass changeit \
-                -keypass changeit \
-                -alias "$alias" \
-                -keyalg RSA \
-                -keysize 4096 \
-                -validity 10000 \
-                -dname "CN=${FDROID_REPO_NAME}, O=Ahara"
-              aws s3 cp "$path" "s3://${KEY_BUCKET}/signing/${name}.p12" >/dev/null
-            fi
-            printf '%s' "$path"
-          }
-
-          APP_KEYSTORE="$(fetch_or_create_key "$APP_KEY_NAME" app)"
-          REPO_KEYSTORE="$(fetch_or_create_key "$REPO_KEY_NAME" fdroid)"
-
-          ANDROID_SIGNING_STORE_FILE="$APP_KEYSTORE" \
-          ANDROID_SIGNING_STORE_PASSWORD=changeit \
-          ANDROID_SIGNING_KEY_ALIAS=app \
-          ANDROID_SIGNING_KEY_PASSWORD=changeit \
-            gradle --no-daemon assembleRelease
-
+          # Build an UNSIGNED release APK. fdroid publish signs it with a
+          # per-app key managed inside the shared repo keystore.
+          gradle --no-daemon assembleRelease
           shopt -s nullglob
-          apk_matches=( $FDROID_APK_GLOB )
-          if [ "${#apk_matches[@]}" -ne 1 ]; then
-            echo "::error::Expected exactly one APK matching ${FDROID_APK_GLOB}, found ${#apk_matches[@]}"
+          apks=( $FDROID_APK_GLOB )
+          if [ "${#apks[@]}" -ne 1 ]; then
+            echo "::error::Expected exactly one APK matching ${FDROID_APK_GLOB}, found ${#apks[@]}"
             exit 1
           fi
+          APK="$(pwd)/${apks[0]}"
 
-          REPO="$WORK/fdroid"
-          mkdir -p "$REPO/repo" "$REPO/metadata"
-          aws s3 sync "s3://${REPO_BUCKET}/repo/" "$REPO/repo/" || true
-          cp "${apk_matches[0]}" "$REPO/repo/${FDROID_APP_ID}.apk"
-          cat > "$REPO/config.yml" << EOF
-          repo_url: "https://${FDROID_HOSTNAME}/repo"
-          repo_name: "${FDROID_REPO_NAME}"
-          repo_description: "${FDROID_REPO_DESCRIPTION}"
-          archive_older: 0
-          keystore: "${REPO_KEYSTORE}"
-          repo_keyalias: "fdroid"
-          keystorepass: "changeit"
-          keypass: "changeit"
-          keydname: "CN=${FDROID_REPO_NAME}, O=Ahara"
-          EOF
-          cat > "$REPO/metadata/${FDROID_APP_ID}.yml" << EOF
+          # fdroid working directory. The keystore (repo key + per-app keys),
+          # config, and metadata are the source of truth and live in the private
+          # signing bucket. The published repo/ (every app's signed APKs) lives
+          # in the public repo bucket; we pull all of it so the index rebuild
+          # covers the entire bucket, not just this app.
+          WORK="$(mktemp -d)"
+          trap 'rm -rf "$WORK"' EXIT
+          mkdir -p "$WORK/repo" "$WORK/unsigned" "$WORK/metadata"
+          aws s3 sync "s3://${KEY_BUCKET}/workdir/" "$WORK/" --exclude 'repo/*'
+          aws s3 sync "s3://${REPO_BUCKET}/repo/" "$WORK/repo/"
+
+          cd "$WORK"
+
+          # Bootstrap the repo keystore/config on first ever run.
+          if [ ! -f keystore.p12 ]; then
+            rm -f config.yml
+            fdroid init --keystore keystore.p12
+          fi
+
+          # Assert repo identity every run (idempotent).
+          python3 - "$FDROID_HOSTNAME" "$FDROID_REPO_NAME" "$FDROID_REPO_DESCRIPTION" <<'PY'
+          import sys, yaml
+          host, name, desc = sys.argv[1:4]
+          with open("config.yml") as f:
+              cfg = yaml.safe_load(f) or {}
+          cfg["repo_url"] = f"https://{host}/repo"
+          cfg["repo_name"] = name
+          cfg["repo_description"] = desc
+          cfg["archive_older"] = 0
+          with open("config.yml", "w") as f:
+              yaml.safe_dump(cfg, f, default_flow_style=False, sort_keys=False)
+          PY
+
+          cat > "metadata/${FDROID_APP_ID}.yml" << EOF
           Categories:
             - Multimedia
           License: MIT
@@ -554,14 +540,26 @@ jobs:
           Repo: https://github.com/${{ github.repository }}.git
           Builds: []
           EOF
-          (cd "$REPO" && fdroid update --create-metadata --rename-apks)
-          aws s3 sync "$REPO/repo/" "s3://${REPO_BUCKET}/repo/" \
-            --delete \
-            --cache-control "public,max-age=300"
+
+          # Stage this app's unsigned APK for signing. Read the versionCode from
+          # the APK so concurrent apps never collide on filename.
+          AAPT="$(ls "${ANDROID_HOME:-$ANDROID_SDK_ROOT}"/build-tools/*/aapt2 2>/dev/null | sort -V | tail -1 || true)"
+          VERCODE="$([ -n "$AAPT" ] && "$AAPT" dump badging "$APK" | sed -n "s/.*versionCode='\([0-9][0-9]*\)'.*/\1/p" | head -1 || true)"
+          VERCODE="${VERCODE:-$GITHUB_RUN_NUMBER}"
+          cp "$APK" "unsigned/${FDROID_APP_ID}_${VERCODE}.apk"
+
+          # Sign this app (per-app key) then rebuild+sign the whole index.
+          fdroid publish
+          fdroid update --create-metadata
+
+          # Persist source-of-truth state privately, publish repo/ publicly.
+          aws s3 sync "$WORK/" "s3://${KEY_BUCKET}/workdir/" \
+            --exclude 'repo/*' --exclude 'tmp/*' --delete
+          aws s3 sync "$WORK/repo/" "s3://${REPO_BUCKET}/repo/" \
+            --delete --cache-control "public,max-age=300"
           aws cloudfront create-invalidation \
-            --distribution-id "$DISTRIBUTION_ID" \
-            --paths "/repo/*" >/dev/null
-          echo "Published F-Droid repo to https://${FDROID_HOSTNAME}/repo"
+            --distribution-id "$DISTRIBUTION_ID" --paths "/repo/*" >/dev/null
+          echo "Published ${FDROID_APP_ID} to https://${FDROID_HOSTNAME}/repo"
 
       - name: Build Lambda (Python)
         if: inputs.deploy && github.ref == 'refs/heads/main' && steps.config.outputs.has_python == 'true'
