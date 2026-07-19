@@ -558,9 +558,29 @@ jobs:
           aws s3 sync "$REPO/repo/" "s3://${REPO_BUCKET}/repo/" \
             --delete \
             --cache-control "public,max-age=300"
+          cat > "$WORK/index.html" << EOF
+          <!doctype html>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1">
+          <title>${FDROID_REPO_NAME}</title>
+          <style>
+            body { margin: 2rem; font: 16px system-ui, sans-serif; background: #171720; color: #fff; }
+            code, a { color: #fb923c; }
+          </style>
+          <h1>${FDROID_REPO_NAME}</h1>
+          <p>${FDROID_REPO_DESCRIPTION}</p>
+          <p>Add this repository URL in F-Droid:</p>
+          <p><code>https://${FDROID_HOSTNAME}/repo</code></p>
+          EOF
+          aws s3 cp "$WORK/index.html" "s3://${REPO_BUCKET}/index.html" \
+            --content-type "text/html; charset=utf-8" \
+            --cache-control "public,max-age=300" >/dev/null
+          aws s3 cp "$WORK/index.html" "s3://${REPO_BUCKET}/repo/" \
+            --content-type "text/html; charset=utf-8" \
+            --cache-control "public,max-age=300" >/dev/null
           aws cloudfront create-invalidation \
             --distribution-id "$DISTRIBUTION_ID" \
-            --paths "/repo/*" >/dev/null
+            --paths "/" "/repo/" "/repo/*" >/dev/null
           echo "Published F-Droid repo to https://${FDROID_HOSTNAME}/repo"
 
       - name: Build Lambda (Python)
