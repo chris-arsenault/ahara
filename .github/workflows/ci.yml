@@ -123,6 +123,7 @@ jobs:
               fdroid_hostname = fdroid_cfg.get("hostname", "")
               fdroid_app_id = fdroid_cfg.get("app_id", "")
               fdroid_apk_glob = fdroid_cfg.get("apk_glob", "app/build/outputs/apk/release/*.apk")
+              fdroid_metadata_path = fdroid_cfg.get("metadata_path") or (f"fdroid/metadata/{fdroid_app_id}.yml" if fdroid_app_id else "")
               if has_fdroid:
                   missing = [
                       key for key, value in {
@@ -138,6 +139,7 @@ jobs:
               f.write(f"fdroid_hostname={fdroid_hostname}\n")
               f.write(f"fdroid_app_id={fdroid_app_id}\n")
               f.write(f"fdroid_apk_glob={fdroid_apk_glob}\n")
+              f.write(f"fdroid_metadata_path={fdroid_metadata_path}\n")
               rust_shared_crates_dir = cfg.get("rust_shared_crates_dir", "")
               f.write(f"has_rust_shared_crates={'true' if rust_shared_crates_dir else 'false'}\n")
               f.write(f"rust_shared_crates_dir={rust_shared_crates_dir}\n")
@@ -471,6 +473,7 @@ jobs:
           FDROID_HOSTNAME: ${{ steps.config.outputs.fdroid_hostname }}
           FDROID_APP_ID: ${{ steps.config.outputs.fdroid_app_id }}
           FDROID_APK_GLOB: ${{ steps.config.outputs.fdroid_apk_glob }}
+          FDROID_METADATA_PATH: ${{ steps.config.outputs.fdroid_metadata_path }}
         run: |
           set -euo pipefail
           python3 -m pip install --user fdroidserver
@@ -528,18 +531,12 @@ jobs:
               yaml.safe_dump(cfg, f, default_flow_style=False, sort_keys=False)
           PY
 
-          cat > "metadata/${FDROID_APP_ID}.yml" << EOF
-          Categories:
-            - Multimedia
-          License: MIT
-          AuthorName: Ahara
-          SourceCode: https://github.com/${{ github.repository }}
-          IssueTracker: https://github.com/${{ github.repository }}/issues
-          AutoName: ${FDROID_REPO_NAME}
-          RepoType: git
-          Repo: https://github.com/${{ github.repository }}.git
-          Builds: []
-          EOF
+          if [ ! -f "${GITHUB_WORKSPACE}/${{ steps.config.outputs.android_dir }}/${FDROID_METADATA_PATH}" ]; then
+            echo "::error::Missing F-Droid metadata: ${{ steps.config.outputs.android_dir }}/${FDROID_METADATA_PATH}"
+            exit 1
+          fi
+          cp "${GITHUB_WORKSPACE}/${{ steps.config.outputs.android_dir }}/${FDROID_METADATA_PATH}" \
+            "metadata/${FDROID_APP_ID}.yml"
 
           # Stage this app's unsigned APK for signing. Read the versionCode from
           # the APK so concurrent apps never collide on filename.
