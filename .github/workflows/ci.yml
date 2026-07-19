@@ -554,6 +554,10 @@ jobs:
           cfg["repo_name"] = name
           cfg["repo_description"] = desc
           cfg["archive_older"] = 0
+          # Keep the keystore path relative to the fdroid workdir. `fdroid init`
+          # bakes an absolute path from the bootstrap runner's mktemp dir, which
+          # is gone on every later run; normalizing here makes it portable.
+          cfg["keystore"] = "keystore.p12"
           with open("config.yml", "w") as f:
               yaml.safe_dump(cfg, f, default_flow_style=False, sort_keys=False)
           PY
