@@ -569,7 +569,9 @@ jobs:
           AAPT="$(ls "${ANDROID_HOME:-$ANDROID_SDK_ROOT}"/build-tools/*/aapt2 2>/dev/null | sort -V | tail -1 || true)"
           VERCODE="$([ -n "$AAPT" ] && "$AAPT" dump badging "$APK" | sed -n "s/.*versionCode='\([0-9][0-9]*\)'.*/\1/p" | head -1 || true)"
           VERCODE="${VERCODE:-$GITHUB_RUN_NUMBER}"
-          cp "$APK" "unsigned/${FDROID_APP_ID}_${VERCODE}.apk"
+          APK_NAME="${FDROID_APP_ID}_${VERCODE}.apk"
+          rm -f "repo/${APK_NAME}" "repo/${APK_NAME}.idsig"
+          cp "$APK" "unsigned/${APK_NAME}"
 
           # Sign this app (per-app key) then rebuild+sign the whole index.
           fdroid publish
