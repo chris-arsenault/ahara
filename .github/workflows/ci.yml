@@ -108,31 +108,56 @@ jobs:
               f.write(f"rust_binaries={json.dumps(rust_binaries)}\n")
               f.write(f"rust_telemetry_adoption={'true' if cfg.get('rust_telemetry_adoption') else 'false'}\n")
               android_cfg = cfg.get("android") or {}
-              if "android" in stack and not isinstance(android_cfg, dict):
-                  raise SystemExit("platform.yml: android must be a mapping when present")
-              android_dir = android_cfg.get("dir", "android")
-              android_gradle_task = android_cfg.get("ci_task", "assembleDebug")
+              if "android" in stack:
+                  if not isinstance(android_cfg, dict):
+                      raise SystemExit("platform.yml: android must be a mapping when present")
+                  missing = [
+                      key for key, value in {
+                          "android.dir": android_cfg.get("dir"),
+                          "android.ci_task": android_cfg.get("ci_task"),
+                      }.items()
+                      if not isinstance(value, str) or not value.strip()
+                  ]
+                  if missing:
+                      raise SystemExit("platform.yml: android missing required key(s): " + ", ".join(missing))
+                  android_dir = android_cfg["dir"]
+                  android_gradle_task = android_cfg["ci_task"]
+              else:
+                  android_dir = ""
+                  android_gradle_task = ""
               f.write(f"android_dir={android_dir}\n")
               f.write(f"android_gradle_task={android_gradle_task}\n")
               fdroid_cfg = cfg.get("fdroid") or {}
               has_fdroid = bool(fdroid_cfg)
               if fdroid_cfg and not isinstance(fdroid_cfg, dict):
                   raise SystemExit("platform.yml: fdroid must be a mapping when present")
-              fdroid_repo_name = fdroid_cfg.get("repo_name", f"{cfg['project']} F-Droid")
-              fdroid_repo_description = fdroid_cfg.get("repo_description", f"{cfg['project']} Android packages")
-              fdroid_hostname = fdroid_cfg.get("hostname", "")
-              fdroid_app_id = fdroid_cfg.get("app_id", "")
-              fdroid_apk_glob = fdroid_cfg.get("apk_glob", "app/build/outputs/apk/release/*.apk")
-              fdroid_metadata_path = fdroid_cfg.get("metadata_path") or (f"fdroid/metadata/{fdroid_app_id}.yml" if fdroid_app_id else "")
               if has_fdroid:
                   missing = [
                       key for key, value in {
-                          "app_id": fdroid_app_id,
+                          "app_id": fdroid_cfg.get("app_id"),
+                          "repo_name": fdroid_cfg.get("repo_name"),
+                          "repo_description": fdroid_cfg.get("repo_description"),
+                          "hostname": fdroid_cfg.get("hostname"),
+                          "apk_glob": fdroid_cfg.get("apk_glob"),
+                          "metadata_path": fdroid_cfg.get("metadata_path"),
                       }.items()
                       if not isinstance(value, str) or not value.strip()
                   ]
                   if missing:
                       raise SystemExit("platform.yml: fdroid missing required key(s): " + ", ".join(missing))
+                  fdroid_repo_name = fdroid_cfg["repo_name"]
+                  fdroid_repo_description = fdroid_cfg["repo_description"]
+                  fdroid_hostname = fdroid_cfg["hostname"]
+                  fdroid_app_id = fdroid_cfg["app_id"]
+                  fdroid_apk_glob = fdroid_cfg["apk_glob"]
+                  fdroid_metadata_path = fdroid_cfg["metadata_path"]
+              else:
+                  fdroid_repo_name = ""
+                  fdroid_repo_description = ""
+                  fdroid_hostname = ""
+                  fdroid_app_id = ""
+                  fdroid_apk_glob = ""
+                  fdroid_metadata_path = ""
               f.write(f"has_fdroid={'true' if has_fdroid else 'false'}\n")
               f.write(f"fdroid_repo_name={fdroid_repo_name}\n")
               f.write(f"fdroid_repo_description={fdroid_repo_description}\n")
@@ -483,9 +508,6 @@ jobs:
           REPO_BUCKET="$(aws ssm get-parameter --name /ahara/fdroid/repo-bucket --query Parameter.Value --output text)"
           KEY_BUCKET="$(aws ssm get-parameter --name /ahara/fdroid/signing-bucket --query Parameter.Value --output text)"
           DISTRIBUTION_ID="$(aws ssm get-parameter --name /ahara/fdroid/distribution-id --query Parameter.Value --output text)"
-          if [ -z "$FDROID_HOSTNAME" ]; then
-            FDROID_HOSTNAME="$(aws ssm get-parameter --name /ahara/fdroid/hostname --query Parameter.Value --output text)"
-          fi
 
           # Build an UNSIGNED release APK. fdroid publish signs it with a
           # per-app key managed inside the shared repo keystore.
@@ -497,6 +519,11 @@ jobs:
             exit 1
           fi
           APK="$(pwd)/${apks[0]}"
+          METADATA="$(pwd)/${FDROID_METADATA_PATH}"
+          if [ ! -f "$METADATA" ]; then
+            echo "::error::Missing F-Droid metadata: ${FDROID_METADATA_PATH}"
+            exit 1
+          fi
 
           # fdroid working directory. The keystore (repo key + per-app keys),
           # config, and metadata are the source of truth and live in the private
@@ -531,12 +558,7 @@ jobs:
               yaml.safe_dump(cfg, f, default_flow_style=False, sort_keys=False)
           PY
 
-          if [ ! -f "${GITHUB_WORKSPACE}/${{ steps.config.outputs.android_dir }}/${FDROID_METADATA_PATH}" ]; then
-            echo "::error::Missing F-Droid metadata: ${{ steps.config.outputs.android_dir }}/${FDROID_METADATA_PATH}"
-            exit 1
-          fi
-          cp "${GITHUB_WORKSPACE}/${{ steps.config.outputs.android_dir }}/${FDROID_METADATA_PATH}" \
-            "metadata/${FDROID_APP_ID}.yml"
+          cp "$METADATA" "metadata/${FDROID_APP_ID}.yml"
 
           # Stage this app's unsigned APK for signing. Read the versionCode from
           # the APK so concurrent apps never collide on filename.
