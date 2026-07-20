@@ -351,12 +351,21 @@ Each deploy for `<stack-name>` ensures every registered database ID owned by tha
 
 TrueNAS services are reached via WireGuard VPN. The reverse proxy (nginx on EC2) routes traffic from the shared ALB to TrueNAS:
 
-- **ALB** → **CloudFront** → **ALB** → **nginx reverse proxy** → **WireGuard** → **TrueNAS**
+- **Client** → **shared ALB/WAF** → **nginx reverse proxy** → **WireGuard** → **TrueNAS**
+- CloudFront-hosted websites are a separate frontend origin; CloudFront is not an intermediate hop for a direct TrueNAS hostname.
 - Routes are defined in `ahara-infra/infrastructure/terraform/network/locals.tf` under `reverse_proxy_routes`
-- Each route needs: `address` (TrueNAS IP), `port` (container host port), `auth` (cognito/passthrough)
-- Optional: `max_body_size` for routes that handle large uploads
+- Each route needs `address` (TrueNAS IP), `port` (container host port), and `auth`:
+  - `internal` — nginx/VPN upstream only; project Terraform owns listener rules, certificate, and DNS through `alb-api-truenas`
+  - `passthrough` — Ahara Infra owns the public route and the application owns authentication
+  - `cognito` — legacy ALB `authenticate-cognito`; prefer project-owned `jwt-validation` rules for APIs
+- Optional route fields:
+  - `max_body_size` for large uploads
+  - `buffering = "off"` for streaming and long-lived connections
+  - `websocket = true` to forward WebSocket upgrade headers
 
-To add a new reverse proxy route, add an entry to `reverse_proxy_routes` in the `ahara-infra` network layer.
+For a project-owned route, deploy `ahara-infra` first so the internal upstream,
+WireGuard ingress, and deployer permissions exist. Then deploy the project to
+create the listener rules, certificate, and DNS.
 
 ---
 

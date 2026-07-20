@@ -120,6 +120,7 @@ The preferred way to declare permissions. Each bundle maps to a shared module in
 |--------|-----------------------------------|-----------|
 | `website` | `ahara-tf-patterns/modules/website` | `s3-website`, `cloudfront-distribution`, `acm-dns`, `wafv2`, `kms-admin`, `iam-roles`, `lambda-deploy`, `ssm-write` |
 | `alb-api` | `ahara-tf-patterns/modules/alb-api` | `lambda-deploy`, `alb-target-group`, `acm-dns`, `iam-roles` |
+| `alb-api-truenas` | `ahara-tf-patterns/modules/alb-api-truenas` | `alb-target-group`, `acm-dns` |
 | `cognito-app` | `ahara-tf-patterns/modules/cognito-app` | `cognito-client`, `ssm-write` |
 | `lambda` | `ahara-tf-patterns/modules/lambda` (standalone) | `lambda-deploy`, `iam-roles` |
 
@@ -343,6 +344,44 @@ routes = [
 ]
 ```
 
+### TrueNAS-hosted HTTP services
+
+Use `alb-api-truenas` when the workload already runs on TrueNAS and the shared
+ALB should forward to it through the Ahara reverse proxy and WireGuard tunnel.
+The project owns its listener rules, ACM certificate, and Route53 records; the
+`ahara-infra` network layer owns the internal nginx upstream and scoped VPN
+ingress.
+
+1. Add `"alb-api-truenas"` to the project's `module_bundles` registration.
+2. Add the hostname to `reverse_proxy_routes` with `auth = "internal"`.
+3. Point the module at the existing `ahara-proxy-tg` target group.
+
+```hcl
+data "aws_lb_target_group" "reverse_proxy" {
+  name = "ahara-proxy-tg"
+}
+
+module "api" {
+  source = "git::https://github.com/chris-arsenault/ahara-tf-patterns.git//modules/alb-api-truenas"
+
+  hostname         = "app.services.ahara.io"
+  alb              = module.ctx.alb
+  cognito          = module.ctx.cognito
+  target_group_arn = data.aws_lb_target_group.reverse_proxy.arn
+
+  routes = [
+    { priority = 180, paths = ["/api/*"], authenticated = true },
+    { priority = 181, paths = ["/*"], authenticated = false },
+  ]
+}
+```
+
+Keep intentionally public, device-token, and WebSocket-ticket routes ahead of
+the authenticated catch-all. Browser WebSocket handshakes cannot attach an
+Authorization header, so authenticate them in the application using a
+short-lived credential carried outside the URL. See `TRUENAS-DEPLOY.md` for
+the network route fields and deployment order.
+
 ### Non-ALB Lambdas (Async Processing, Triggers)
 
 For Lambdas that are not HTTP-triggered (background processors, Cognito triggers), use the [`lambda`](https://github.com/chris-arsenault/ahara-tf-patterns/tree/main/modules/lambda) module directly. You can reuse the IAM role from `alb-api`:
@@ -386,10 +425,15 @@ Existing allocations:
 
 | Priority | Host | Owner |
 |----------|------|-------|
-| 100 | dashboards.ahara.io | ahara-infra (network) |
-| 150 | ci.ahara.io | ahara-infra (services) |
+| 100 | Cognito reverse-proxy hosts | ahara-infra (services) |
+| 101 | Passthrough reverse-proxy hosts | ahara-infra (network) |
+| 150 | ci.services.ahara.io | ahara-infra (services) |
+| 160–162 | ops.services.ahara.io | ahara-infra (services) |
+| 171–172 | api.airwave.ahara.io | airwave |
+| 173–177 | sulion.services.ahara.io | sulion |
 
-Use 200+ for consumer projects. Do not reuse a priority.
+Do not reuse a priority. Search every sibling project's Terraform immediately
+before assigning a new one; listener priorities are shared across repositories.
 
 **CORS:** OPTIONS preflight requests are handled platform-wide by a Lambda at ALB priority 1. Do NOT create per-project OPTIONS listener rules. Your Lambda still needs to add CORS headers on actual (non-preflight) responses. For Rust Lambda APIs, prefer a small `lambda_http::Response` helper over pulling in Axum/Tower only for CORS; `tower-http CorsLayer` is acceptable only in services that already intentionally use Tower.
 
