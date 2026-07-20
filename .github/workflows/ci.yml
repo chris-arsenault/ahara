@@ -564,37 +564,13 @@ jobs:
 
           cp "$METADATA" "metadata/${FDROID_APP_ID}.yml"
 
-          # Stage this app's unsigned APK for signing. Read versionCode from
-          # Android Gradle Plugin's output metadata instead of scraping APK text.
-          VERCODE="$(python3 - "$APK" <<'PY'
-          import json
-          import sys
-          from pathlib import Path
-
-          apk = Path(sys.argv[1])
-          metadata_path = apk.parent / "output-metadata.json"
-          with metadata_path.open() as f:
-              metadata = json.load(f)
-          elements = metadata.get("elements") or []
-          matching = [e for e in elements if e.get("outputFile") == apk.name]
-          selected = matching[0] if matching else elements[0]
-          print(selected["versionCode"])
-          PY
-          )"
+          # Stage this app's unsigned APK for signing. Read the versionCode from
+          # the APK so concurrent apps never collide on filename.
+          AAPT="$(ls "${ANDROID_HOME:-$ANDROID_SDK_ROOT}"/build-tools/*/aapt2 2>/dev/null | sort -V | tail -1 || true)"
+          VERCODE="$([ -n "$AAPT" ] && "$AAPT" dump badging "$APK" | sed -n "s/.*versionCode='\([0-9][0-9]*\)'.*/\1/p" | head -1 || true)"
+          VERCODE="${VERCODE:-$GITHUB_RUN_NUMBER}"
           APK_NAME="${FDROID_APP_ID}_${VERCODE}.apk"
-
-          # This shared repo publishes current sideload builds, not an archive.
-          # Remove prior APKs for this app before publishing the replacement.
-          python3 - "$FDROID_APP_ID" <<'PY'
-          import sys
-          from pathlib import Path
-
-          app_id = sys.argv[1]
-          repo = Path("repo")
-          for path in list(repo.glob(f"{app_id}_*.apk")) + list(repo.glob(f"{app_id}_*.apk.idsig")):
-              path.unlink()
-          PY
-
+          rm -f "repo/${APK_NAME}" "repo/${APK_NAME}.idsig"
           cp "$APK" "unsigned/${APK_NAME}"
 
           # Sign this app (per-app key) then rebuild+sign the whole index.
