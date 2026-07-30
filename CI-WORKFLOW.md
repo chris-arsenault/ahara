@@ -80,6 +80,8 @@ truenas_roles_anywhere:  # Optional — AWS identities for TrueNAS workloads
 images:                  # Optional — multi-image TrueNAS deploy
   - api                  # Builds api/Dockerfile → ghcr.io/.../project/api:sha
   - web                  # Builds web/Dockerfile → ghcr.io/.../project/web:sha
+content_addressed_images: # Optional — skip rebuilding when the component tree is unchanged
+  - toolset              # Must also be in images; must not receive rust binaries
 rust_artifacts:          # Required if 'rust' in stack — explicit declaration of build outputs
   lambdas:               # Cargo bin names; built via cargo-lambda → target/lambda/<bin>/bootstrap (terraform consumes)
     - my-lambda
@@ -98,6 +100,8 @@ Only include stack components your project actually has. The shared workflow ski
 `rust_artifacts` is mandatory whenever `rust` is in `stack`. Use `rust_artifacts: {}` for rust code with no deployable artifacts (e.g. a library-only crate). The two sub-keys are independent — a project can declare `lambdas`, `binaries`, both, or neither. `truenas: true` no longer implies a Rust binary build; declare `binaries:` if your Docker image needs one.
 
 When `truenas: true` without `images`, a single image is built from the repo root. When `images` is present, each entry is a component directory containing its own `Dockerfile`, pushed to `ghcr.io/chris-arsenault/{project}/{component}:{sha}`.
+
+`content_addressed_images` names images (a subset of `images`) whose build is skipped when nothing in the component directory changed. The workflow tags such images with the git tree hash of their directory (`:t-<tree>`); when that tag already exists in GHCR, it re-points `:{sha}` and `:latest` at the existing image instead of building. Consumers keep pulling `:{sha}` exactly as before — only the image *content* stops churning. This is only valid for self-contained components: the tree hash covers tracked files in the component directory and nothing else, so an image that receives CI-injected artifacts (any `rust_artifacts.binaries` target) is rejected at config time.
 
 `truenas: true` means the repo deploys to TrueNAS through Komodo. Set `truenas_images: false` when that Komodo stack uses upstream images directly and the repo owns only Compose/config files. The workflow deploys the Compose file named by `truenas_compose_path` (default `compose.yaml`), validates every path in `truenas_compose_check_paths`, reads `secret-paths.yml`, and deploys through Komodo, but skips Docker Buildx and GHCR pushes. Use `stack: [vendor]` for these third-party/upstream-image repos. See [TRUENAS-DEPLOY.md](TRUENAS-DEPLOY.md) for full details.
 

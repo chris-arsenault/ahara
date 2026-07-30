@@ -195,6 +195,24 @@ jobs:
                   f.write(f"images={json.dumps(images)}\n")
               else:
                   f.write(f"images=\n")
+              # Content-addressed images: skip the build when the component
+              # tree is unchanged. Only valid for self-contained components —
+              # a component that receives per-commit rust binaries changes
+              # every commit by construction, so content addressing it would
+              # ship stale binaries under a fresh :sha tag.
+              ca_images = cfg.get('content_addressed_images') or []
+              if not isinstance(ca_images, list) or any(
+                  not isinstance(i, str) or not i.strip() for i in ca_images
+              ):
+                  raise SystemExit("platform.yml: content_addressed_images must be a list of image names")
+              unknown = [i for i in ca_images if i not in images]
+              if unknown:
+                  raise SystemExit("platform.yml: content_addressed_images entries missing from images: " + ", ".join(unknown))
+              binary_images = {b.get('image') for b in rust_binaries if isinstance(b, dict)}
+              clash = [i for i in ca_images if i in binary_images]
+              if clash:
+                  raise SystemExit("platform.yml: content_addressed_images receive per-commit rust binaries: " + ", ".join(clash))
+              f.write(f"content_addressed_images={json.dumps(ca_images)}\n")
           PYEOF
         shell: bash
 
@@ -622,18 +640,26 @@ jobs:
           PROJECT="${{ steps.config.outputs.project }}"
           SHA="${{ github.sha }}"
           IMAGES='${{ steps.config.outputs.images }}'
+          CA_IMAGES='${{ steps.config.outputs.content_addressed_images }}'
+          CA_LIST=$(echo "${CA_IMAGES:-[]}" | python3 -c "import sys,json; print(' '.join(json.load(sys.stdin)))")
 
           build_and_push() {
             local context="$1"
             local tag="$2"
             local latest_tag="$3"
             local cache_tag="$4"
+            local content_tag="${5:-}"
 
+            local extra_tags=()
+            if [ -n "$content_tag" ]; then
+              extra_tags+=(--tag "$content_tag")
+            fi
             echo "Building ${tag} from ${context}"
             docker buildx build \
               --push \
               --tag "$tag" \
               --tag "$latest_tag" \
+              "${extra_tags[@]}" \
               --cache-from "type=registry,ref=${cache_tag}" \
               --cache-to "type=registry,ref=${cache_tag},mode=max" \
               "$context"
@@ -645,7 +671,24 @@ jobs:
               TAG="ghcr.io/chris-arsenault/${PROJECT}/${COMPONENT}:${SHA}"
               TAG_LATEST="ghcr.io/chris-arsenault/${PROJECT}/${COMPONENT}:latest"
               CACHE_TAG="ghcr.io/chris-arsenault/${PROJECT}/${COMPONENT}:buildcache"
-              build_and_push "${COMPONENT}/" "$TAG" "$TAG_LATEST" "$CACHE_TAG"
+              case " ${CA_LIST} " in
+                *" ${COMPONENT} "*)
+                  # Content-addressed: the tag is the git tree hash of the
+                  # component directory. Same tree → the image already exists;
+                  # re-point :sha and :latest at it without building.
+                  TREE=$(git rev-parse "HEAD:${COMPONENT}")
+                  TAG_CONTENT="ghcr.io/chris-arsenault/${PROJECT}/${COMPONENT}:t-${TREE}"
+                  if docker manifest inspect "$TAG_CONTENT" >/dev/null 2>&1; then
+                    echo "Content unchanged for ${COMPONENT} (tree ${TREE}); retagging ${TAG}"
+                    docker buildx imagetools create -t "$TAG" -t "$TAG_LATEST" "$TAG_CONTENT"
+                  else
+                    build_and_push "${COMPONENT}/" "$TAG" "$TAG_LATEST" "$CACHE_TAG" "$TAG_CONTENT"
+                  fi
+                  ;;
+                *)
+                  build_and_push "${COMPONENT}/" "$TAG" "$TAG_LATEST" "$CACHE_TAG"
+                  ;;
+              esac
             done
           else
             # Single image from root
