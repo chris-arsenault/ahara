@@ -41,11 +41,12 @@ The shared workflow reads `platform.yml` and runs the appropriate steps based on
 4. **Python lint** — `uv sync`, `ruff check`, `ruff format --check` (auto-detected from `Cargo.toml` sibling)
 5. **Terraform lint** — `terraform fmt -check -recursive` in `infrastructure/terraform/`
 6. **Vendor config lint** — `docker compose config` for `stack: [vendor]` repos
-7. **SonarQube scan** — auto-configured sources, exclusions, and coverage report paths from stack
-8. **Deploy (main only)** — cargo-lambda build, pnpm build, migrations, terraform apply
-9. **TrueNAS deploy (if configured)** — optional Docker build/GHCR push, then Komodo deploy
-10. **Grafana dashboard deploy (if configured)** — product-owned dashboards are pushed through the shared dashboard deploy Lambda
-11. **Report** — auto-detects lint/test outcomes and duration via GitHub API
+7. **Nix checks** — `docker build` of `ci/Dockerfile.check` (flake evaluate + VM test targets) for `stack: [nix]` repos; no nix installer on the runner
+8. **SonarQube scan** — auto-configured sources, exclusions, and coverage report paths from stack
+9. **Deploy (main only)** — cargo-lambda build, pnpm build, migrations, terraform apply
+10. **TrueNAS deploy (if configured)** — optional Docker build/GHCR push, then Komodo deploy
+11. **Grafana dashboard deploy (if configured)** — product-owned dashboards are pushed through the shared dashboard deploy Lambda
+12. **Report** — auto-detects lint/test outcomes and duration via GitHub API
 
 ### What it does NOT do
 
@@ -68,6 +69,7 @@ stack:                   # Declares which lint/build/deploy steps to run
   - python               # ruff check, ruff format, scripts/build-lambda.sh
   - terraform            # terraform fmt, terraform apply
   - vendor               # third-party/upstream-image Compose config validation
+  - nix                  # docker-build of ci/Dockerfile.check: flake evaluate + VM tests
 migrations: db/migrations  # Optional — enables run-migrations step
 truenas: true            # Optional — enables Docker + Komodo deploy
 truenas_images: false    # Optional — skip GHCR image build for upstream-image Compose stacks

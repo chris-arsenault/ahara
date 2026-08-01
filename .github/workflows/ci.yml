@@ -48,6 +48,7 @@ jobs:
               f.write(f"has_terraform={'true' if 'terraform' in stack else 'false'}\n")
               f.write(f"has_vendor={'true' if 'vendor' in stack else 'false'}\n")
               f.write(f"has_android={'true' if 'android' in stack else 'false'}\n")
+              f.write(f"has_nix={'true' if 'nix' in stack else 'false'}\n")
               f.write(f"has_migrations={'true' if cfg.get('migrations') else 'false'}\n")
               f.write(f"migrations_dir={cfg.get('migrations', '')}\n")
               f.write(f"has_truenas={'true' if cfg.get('truenas') else 'false'}\n")
@@ -418,6 +419,18 @@ jobs:
           echo "${COMPOSE_PATHS}" | python3 -c 'import json, sys; [print(path) for path in json.load(sys.stdin)]' | while read -r compose_path; do
             docker compose "${env_args[@]}" -f "${compose_path}" config >/dev/null
           done
+
+      # ── Nix ─────────────────────────────────────────────────
+      # Repos ship a ci/Dockerfile.check that runs flake checks inside the
+      # nixos/nix image, so runners need docker only — no nix installer.
+
+      - name: Lint nix flake
+        if: steps.config.outputs.has_nix == 'true'
+        run: docker build --target evaluate -f ci/Dockerfile.check .
+
+      - name: Test nix VM
+        if: steps.config.outputs.has_nix == 'true'
+        run: docker build --target test -f ci/Dockerfile.check .
 
       # ── SonarQube ───────────────────────────────────────────
 
