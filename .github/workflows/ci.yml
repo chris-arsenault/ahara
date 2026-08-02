@@ -49,6 +49,7 @@ jobs:
               f.write(f"has_vendor={'true' if 'vendor' in stack else 'false'}\n")
               f.write(f"has_android={'true' if 'android' in stack else 'false'}\n")
               f.write(f"has_nix={'true' if 'nix' in stack else 'false'}\n")
+              f.write(f"nix_vm_tests={'true' if cfg.get('nix_vm_tests') else 'false'}\n")
               f.write(f"has_migrations={'true' if cfg.get('migrations') else 'false'}\n")
               f.write(f"migrations_dir={cfg.get('migrations', '')}\n")
               f.write(f"has_truenas={'true' if cfg.get('truenas') else 'false'}\n")
@@ -423,14 +424,24 @@ jobs:
       # ── Nix ─────────────────────────────────────────────────
       # Repos ship a ci/Dockerfile.check that runs flake checks inside the
       # nixos/nix image, so runners need docker only — no nix installer.
+      # VM tests are opt-in (platform.yml: nix_vm_tests: true): they need
+      # /dev/kvm, which docker build cannot access, so they run via
+      # docker run with the device passed through. Without KVM a NixOS VM
+      # test falls back to TCG emulation and exceeds its own timeout on
+      # hosted runners.
 
       - name: Lint nix flake
         if: steps.config.outputs.has_nix == 'true'
         run: docker build --target evaluate -f ci/Dockerfile.check .
 
       - name: Test nix VM
-        if: steps.config.outputs.has_nix == 'true'
-        run: docker build --target test -f ci/Dockerfile.check .
+        if: steps.config.outputs.has_nix == 'true' && steps.config.outputs.nix_vm_tests == 'true'
+        run: |
+          set -euo pipefail
+          test -e /dev/kvm || { echo "::error::/dev/kvm not available on this runner"; exit 1; }
+          docker build --target source -t nix-check-src -f ci/Dockerfile.check .
+          docker run --rm --device=/dev/kvm nix-check-src \
+            nix --extra-experimental-features "nix-command flakes" flake check --print-build-logs
 
       # ── SonarQube ───────────────────────────────────────────
 
