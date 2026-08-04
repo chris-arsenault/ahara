@@ -426,12 +426,23 @@ Existing allocations:
 
 | Priority | Host | Owner |
 |----------|------|-------|
+| 1 | CORS preflight (all hosts) | ahara-infra (services) |
 | 100 | Cognito reverse-proxy hosts | ahara-infra (services) |
 | 101 | Passthrough reverse-proxy hosts | ahara-infra (network) |
 | 150 | ci.services.ahara.io | ahara-infra (services) |
 | 160–162 | ops.services.ahara.io | ahara-infra (services) |
 | 171–172 | api.airwave.ahara.io | airwave |
-| 173–177 | sulion.services.ahara.io | sulion |
+| 173–178 | sulion.services.ahara.io | sulion |
+| 201 | api.dosekit.ahara.io | dosekit |
+| 209–215 | api.tastebase.ahara.io | tastebase |
+| 210 | agents-of-glass (**collides with tastebase 210** — one side must move) | agents-of-glass |
+| 220–229 | shell.ahara.io (reserved block) | athena-s3-web-shell |
+| 230 | foundry.ahara.io | foundry-vtt |
+| 240–243 | tsonu-music admin API | tsonu-music |
+| 300–302 | svap | svap |
+| 320–321 | ahara-business | ahara-business |
+| 370–371 | ahara-access | ahara-access |
+| 380–381 | bookmarker | bookmarker |
 
 Do not reuse a priority. Search every sibling project's Terraform immediately
 before assigning a new one; listener priorities are shared across repositories.
