@@ -437,7 +437,7 @@ Existing allocations:
 | 209–215 | api.tastebase.ahara.io | tastebase |
 | 210 | agents-of-glass (**collides with tastebase 210** — one side must move) | agents-of-glass |
 | 220–229 | shell.ahara.io (reserved block) | athena-s3-web-shell |
-| 230 | foundry.ahara.io | foundry-vtt |
+| 230–231 | foundry.ahara.io, api.foundry-vtt.ahara.io | foundry-vtt |
 | 240–243 | tsonu-music admin API | tsonu-music |
 | 300–302 | svap | svap |
 | 320–321 | ahara-business | ahara-business |
