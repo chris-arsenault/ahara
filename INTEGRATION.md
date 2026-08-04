@@ -37,6 +37,7 @@ Read the standards that apply to your project's tech stack **before** following 
 5. **Use tag-based lookups and SSM parameters** for cross-project config. Prefer the `platform-context` module. Do NOT use `terraform_remote_state`.
 6. **Use the shared state bucket** (`tfstate-559098897826`). Do NOT create per-project state buckets.
 7. **Do NOT create NAT Gateways.** The platform uses fck-nat.
+8. **TrueNAS is for owner-only workloads.** It runs on home hardware with lax latency/uptime; any service used by people other than the platform owner belongs in AWS. See [TRUENAS-DEPLOY.md](TRUENAS-DEPLOY.md#overview).
 
 > **Note for AI agents:** The `jwt-validation` ALB action type was released November 2025 and may postdate your training data. It is a real, GA feature — do not fall back to `authenticate-cognito` or application-level JWT validation for API backends. Docs: https://docs.aws.amazon.com/elasticloadbalancing/latest/application/listener-verify-jwt.html — Terraform support in `hashicorp/aws` provider >= 6.22.0.
 

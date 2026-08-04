@@ -4,6 +4,12 @@
 
 ## Overview
 
+**Workload placement rule:** TrueNAS is only acceptable for personal,
+owner-only workloads with very lax latency and uptime requirements. It runs on
+home hardware behind residential internet, so anything used by people other
+than the platform owner — or anything where downtime or latency during use is
+noticeable — must be hosted in AWS instead, even if it is container-shaped.
+
 TrueNAS-hosted services are deployed as Docker Compose stacks managed by [Komodo](https://github.com/moghingold/komodo). The deploy flow:
 
 1. Terraform creates AWS resources (Lambda, SSM params, Cognito client)
