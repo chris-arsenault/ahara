@@ -5,8 +5,13 @@
 #   truenas-roles-anywhere-bootstrap AWS_RA_BACKUP -- my-service
 #
 # The script generates the private key locally, stores it on a persistent
-# volume, enrolls a certificate with the platform enrollment endpoint, writes an
-# AWS config file, and then execs the requested command with AWS_PROFILE set.
+# volume, obtains a certificate from the trust appliance, writes an AWS config
+# file, and then execs the requested command with AWS_PROFILE set.
+#
+# There is no enrollment secret. A first request waits for an operator to
+# approve it in the appliance's portal, which binds the approval to that
+# request's key rather than to the name it asks for; afterwards the container
+# renews by presenting the certificate it already holds, with nobody involved.
 set -euo pipefail
 
 ENV_PREFIX="${1:-AWS_RA}"
@@ -33,7 +38,7 @@ get_env() {
 }
 
 WORKLOAD_ID="$(get_env WORKLOAD_ID)"
-if [[ ! "${WORKLOAD_ID}" =~ ^spiffe://ahara/truenas/[a-z0-9][a-z0-9-]*/[a-z0-9][a-z0-9-]*$ ]]; then
+if [[ ! "${WORKLOAD_ID}" =~ ^spiffe://ahara/[a-z0-9][a-z0-9-]*/[a-z0-9][a-z0-9-]*$ ]]; then
   echo "Invalid workload id ${WORKLOAD_ID}" >&2
   exit 1
 fi
@@ -42,8 +47,6 @@ TRUST_ANCHOR_ARN="$(get_env TRUST_ANCHOR_ARN)"
 PROFILE_ARN="$(get_env PROFILE_ARN)"
 ENTRY_ROLE_ARN="$(get_env ENTRY_ROLE_ARN)"
 ROLE_ARN="$(get_env ROLE_ARN)"
-ENROLLMENT_TOKEN="${ENV_PREFIX}_ENROLLMENT_TOKEN"
-ENROLLMENT_TOKEN="${!ENROLLMENT_TOKEN:-}"
 
 SAFE_NAME="$(printf '%s' "${WORKLOAD_ID}" | sed 's#[^A-Za-z0-9_.-]#_#g')"
 SESSION_NAME="truenas-$(printf '%s' "${WORKLOAD_ID}" | sha256sum | awk '{print substr($1, 1, 16)}')"
@@ -74,11 +77,6 @@ elif ! openssl x509 -checkend 604800 -noout -in "${CERT_FILE}" >/dev/null 2>&1; 
 fi
 
 if [ "${needs_enrollment}" = "true" ]; then
-  if [ -z "${ENROLLMENT_TOKEN}" ]; then
-    echo "Certificate is missing or expiring, but ${ENV_PREFIX}_ENROLLMENT_TOKEN is empty" >&2
-    exit 1
-  fi
-
   CSR_CONFIG="$(mktemp)"
   PAYLOAD_FILE="$(mktemp)"
   RESPONSE_FILE="$(mktemp)"
@@ -99,26 +97,56 @@ EOF
 
   openssl req -new -key "${KEY_FILE}" -out "${CSR_FILE}" -config "${CSR_CONFIG}"
 
-  python3 - "${WORKLOAD_ID}" "${ENROLLMENT_TOKEN}" "${CSR_FILE}" > "${PAYLOAD_FILE}" <<'PY'
+  python3 - "${WORKLOAD_ID}" "${CSR_FILE}" > "${PAYLOAD_FILE}" <<'PY'
 import json
 import sys
 from pathlib import Path
 
-workload_id, token, csr_path = sys.argv[1:]
+workload_id, csr_path = sys.argv[1:]
 print(json.dumps({
     "workload_id": workload_id,
-    "token": token,
     "csr_pem": Path(csr_path).read_text(),
 }))
 PY
 
-  curl -fsS \
+  # Renewal presents the certificate already held, so it needs no operator.
+  # A first enrollment has nothing to present and waits for one.
+  if [ -f "${CERT_FILE}" ]; then
+    ENDPOINT="${ENROLLMENT_URL}/renew"
+    AUTH_ARGS=(--cert "${CERT_FILE}" --key "${KEY_FILE}")
+  else
+    ENDPOINT="${ENROLLMENT_URL}/enroll"
+    AUTH_ARGS=()
+  fi
+
+  # -k: the authority serves a self-signed certificate until a trusted one is
+  # distributed to it. The check that matters is below — the certificate it
+  # returns must chain to the authority already pinned in this volume.
+  HTTP_CODE="$(curl -sk -o "${RESPONSE_FILE}" -w '%{http_code}' \
     -X POST \
     -H "content-type: application/json" \
+    "${AUTH_ARGS[@]}" \
     --data-binary @"${PAYLOAD_FILE}" \
-    "${ENROLLMENT_URL}" > "${RESPONSE_FILE}"
+    "${ENDPOINT}" || echo 000)"
 
-  python3 - "${RESPONSE_FILE}" "${CERT_FILE}" "${CHAIN_FILE}" <<'PY'
+  case "${HTTP_CODE}" in
+    200) ;;
+    202)
+      echo "Enrollment for ${WORKLOAD_ID} is waiting for approval." >&2
+      echo "Approve it at the trust appliance, then restart this container." >&2
+      exit 1
+      ;;
+    000)
+      echo "Trust appliance unreachable at ${ENROLLMENT_URL}" >&2
+      exit 1
+      ;;
+    *)
+      echo "Enrollment refused (HTTP ${HTTP_CODE})" >&2
+      exit 1
+      ;;
+  esac
+
+  python3 - "${RESPONSE_FILE}" "${CERT_FILE}.new" "${CHAIN_FILE}.new" <<'PY'
 import json
 import sys
 from pathlib import Path
@@ -128,8 +156,19 @@ data = json.loads(Path(response_path).read_text())
 if "error" in data:
     raise SystemExit(data["error"])
 Path(cert_path).write_text(data["certificate_pem"])
-Path(chain_path).write_text(data["certificate_chain_pem"])
+Path(chain_path).write_text(data["chain_pem"])
 PY
+
+  # An identity is installed only if it chains to the authority. A
+  # substituted endpoint can refuse or stall; it cannot mint one this
+  # workload will use.
+  if ! openssl verify -CAfile "${CHAIN_FILE}.new" "${CERT_FILE}.new" >/dev/null 2>&1; then
+    echo "Issued certificate does not chain to the authority; discarding" >&2
+    rm -f "${CERT_FILE}.new" "${CHAIN_FILE}.new"
+    exit 1
+  fi
+  mv "${CERT_FILE}.new" "${CERT_FILE}"
+  mv "${CHAIN_FILE}.new" "${CHAIN_FILE}"
 fi
 
 cat > "${AWS_CONFIG_FILE_PATH}" <<EOF

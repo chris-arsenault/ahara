@@ -193,9 +193,7 @@ runs:
         import json
         import os
         import re
-        import secrets
         import subprocess
-        import time
 
         region = os.environ["REGION"]
         stack = os.environ["STACK_NAME"]
@@ -222,15 +220,21 @@ runs:
                 "--output", "text",
             )
 
+        # Where to exchange a certificate for credentials. All public
+        # identifiers; the authority that issues the certificate runs on the
+        # LAN and is not addressed from here.
         discovery = {
-            "TRUST_ANCHOR_ARN": get_param("/ahara/truenas-roles-anywhere/trust-anchor-arn"),
-            "PROFILE_ARN": get_param("/ahara/truenas-roles-anywhere/profile-arn"),
-            "ENTRY_ROLE_ARN": get_param("/ahara/truenas-roles-anywhere/entry-role-arn"),
-            "ENROLLMENT_URL": get_param("/ahara/truenas-roles-anywhere/enrollment-url"),
+            "TRUST_ANCHOR_ARN": get_param("/ahara/machines/trust-anchor-arn"),
+            "PROFILE_ARN": get_param("/ahara/machines/profile-arn"),
+            "ENTRY_ROLE_ARN": get_param("/ahara/machines/entry-role-arn"),
+            # The trust appliance. A workload enrolls against it once, an
+            # operator approves that request, and the certificate renews
+            # itself from then on — so no secret is minted here and nothing
+            # expires on a deploy cadence.
+            "ENROLLMENT_URL": "https://trust.local.ahara.io:8443",
         }
 
         env = {}
-        expires_at = int(time.time()) + 3600
         for workload in workloads:
             name = workload["name"]
             env_prefix = workload["env_prefix"]
@@ -239,23 +243,11 @@ runs:
             if not re.fullmatch(r"[A-Z][A-Z0-9_]*", env_prefix):
                 raise SystemExit(f"invalid Roles Anywhere env_prefix for {name}: {env_prefix}")
 
-            workload_id = f"spiffe://ahara/truenas/{stack}/{name}"
-            token = secrets.token_urlsafe(32)
-            token_path = f"/ahara/truenas-roles-anywhere/enrollment/{stack}/{name}/token"
-            role_path = f"/ahara/truenas-roles-anywhere/workloads/{stack}/{name}/role-arn"
+            workload_id = f"spiffe://ahara/{stack}/{name}"
+            role_path = f"/ahara/machines/workloads/{stack}/{name}/role-arn"
             role_arn = get_param(role_path)
 
-            subprocess.check_call([
-                "aws", "ssm", "put-parameter",
-                "--name", token_path,
-                "--type", "SecureString",
-                "--value", json.dumps({"token": token, "expires_at": expires_at}),
-                "--overwrite",
-                "--region", region,
-            ], stdout=subprocess.DEVNULL)
-
             env[f"{env_prefix}_WORKLOAD_ID"] = workload_id
-            env[f"{env_prefix}_ENROLLMENT_TOKEN"] = token
             env[f"{env_prefix}_ROLE_ARN"] = role_arn
             for key, value in discovery.items():
                 env[f"{env_prefix}_{key}"] = value
