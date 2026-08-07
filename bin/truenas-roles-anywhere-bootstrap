@@ -69,10 +69,50 @@ if [ ! -f "${KEY_FILE}" ]; then
   chmod 600 "${KEY_FILE}"
 fi
 
+same_key_pair() {
+  local certificate_public private_public
+  certificate_public="$(openssl x509 -in "$1" -pubkey -noout 2>/dev/null \
+    | openssl pkey -pubin -outform DER 2>/dev/null \
+    | openssl sha256)" || return 1
+  private_public="$(openssl pkey -in "$2" -pubout -outform DER 2>/dev/null \
+    | openssl sha256)" || return 1
+  [ "${certificate_public}" = "${private_public}" ]
+}
+
+certificate_has_workload() {
+  local san uri_sans
+  san="$(openssl x509 -in "$1" -noout -ext subjectAltName 2>/dev/null)" || return 1
+  uri_sans="$(printf '%s\n' "${san}" | tr ',' '\n' \
+    | sed -n 's/^[[:space:]]*URI://p')"
+  [ "${uri_sans}" = "${WORKLOAD_ID}" ]
+}
+
+# The CA is trust-on-first-use. Once stored, a corrupt or replaced pin needs an
+# explicit volume reset; silently fetching a new one would discard that trust
+# decision on an ordinary restart.
+if [ -e "${CHAIN_FILE}" ] \
+  && ! openssl x509 -in "${CHAIN_FILE}" -noout -subject >/dev/null 2>&1; then
+  echo "Pinned trust-appliance authority is unusable at ${CHAIN_FILE}" >&2
+  echo "Restore it, or remove the identity volume to enroll from a new authority." >&2
+  exit 1
+fi
+
+certificate_valid=false
+if [ -f "${CERT_FILE}" ] \
+  && openssl x509 -checkend 0 -noout -in "${CERT_FILE}" >/dev/null 2>&1 \
+  && [ -f "${CHAIN_FILE}" ] \
+  && openssl verify -CAfile "${CHAIN_FILE}" "${CERT_FILE}" >/dev/null 2>&1 \
+  && same_key_pair "${CERT_FILE}" "${KEY_FILE}" \
+  && certificate_has_workload "${CERT_FILE}"; then
+  certificate_valid=true
+elif [ -e "${CERT_FILE}" ]; then
+  echo "Stored identity is expired, corrupt, mismatched, or names another workload; enrolling afresh" >&2
+  rm -f "${CERT_FILE}"
+fi
+
 needs_enrollment=false
-if [ ! -f "${CERT_FILE}" ]; then
-  needs_enrollment=true
-elif ! openssl x509 -checkend 604800 -noout -in "${CERT_FILE}" >/dev/null 2>&1; then
+if [ "${certificate_valid}" != "true" ] \
+  || ! openssl x509 -checkend 604800 -noout -in "${CERT_FILE}" >/dev/null 2>&1; then
   needs_enrollment=true
 fi
 
@@ -111,7 +151,7 @@ PY
 
   # Renewal presents the certificate already held. A first enrollment has
   # nothing to present, so it is gated by the declaration instead.
-  if [ -f "${CERT_FILE}" ]; then
+  if [ "${certificate_valid}" = "true" ]; then
     ENDPOINT="${ENROLLMENT_URL}/renew"
     AUTH_ARGS=(--cert "${CERT_FILE}" --key "${KEY_FILE}")
   else
@@ -119,15 +159,20 @@ PY
     AUTH_ARGS=()
   fi
 
-  # -k: the authority serves a self-signed certificate until a trusted one is
-  # distributed to it. The check that matters is below — the certificate it
-  # returns must chain to the authority already pinned in this volume.
-  HTTP_CODE="$(curl -sk -o "${RESPONSE_FILE}" -w '%{http_code}' \
+  if [ -f "${CHAIN_FILE}" ]; then
+    TLS_ARGS=(--cacert "${CHAIN_FILE}")
+  else
+    # First contact only. The returned CA becomes the persistent pin after the
+    # issued identity verifies against it.
+    TLS_ARGS=(-k)
+  fi
+  HTTP_CODE=000
+  HTTP_CODE="$(curl -s "${TLS_ARGS[@]}" -o "${RESPONSE_FILE}" -w '%{http_code}' \
     -X POST \
     -H "content-type: application/json" \
     "${AUTH_ARGS[@]}" \
     --data-binary @"${PAYLOAD_FILE}" \
-    "${ENDPOINT}" || echo 000)"
+    "${ENDPOINT}")" || true
 
   case "${HTTP_CODE}" in
     200) ;;
@@ -159,11 +204,28 @@ Path(cert_path).write_text(data["certificate_pem"])
 Path(chain_path).write_text(data["chain_pem"])
 PY
 
-  # An identity is installed only if it chains to the authority. A
-  # substituted endpoint can refuse or stall; it cannot mint one this
-  # workload will use.
-  if ! openssl verify -CAfile "${CHAIN_FILE}.new" "${CERT_FILE}.new" >/dev/null 2>&1; then
+  VERIFY_CHAIN="${CHAIN_FILE}.new"
+  if [ -f "${CHAIN_FILE}" ]; then
+    if ! cmp -s "${CHAIN_FILE}.new" "${CHAIN_FILE}"; then
+      echo "Trust appliance returned a different authority than the pinned one; discarding" >&2
+      rm -f "${CERT_FILE}.new" "${CHAIN_FILE}.new"
+      exit 1
+    fi
+    VERIFY_CHAIN="${CHAIN_FILE}"
+  fi
+
+  if ! openssl verify -CAfile "${VERIFY_CHAIN}" "${CERT_FILE}.new" >/dev/null 2>&1; then
     echo "Issued certificate does not chain to the authority; discarding" >&2
+    rm -f "${CERT_FILE}.new" "${CHAIN_FILE}.new"
+    exit 1
+  fi
+  if ! same_key_pair "${CERT_FILE}.new" "${KEY_FILE}"; then
+    echo "Issued certificate does not match the local private key; discarding" >&2
+    rm -f "${CERT_FILE}.new" "${CHAIN_FILE}.new"
+    exit 1
+  fi
+  if ! certificate_has_workload "${CERT_FILE}.new"; then
+    echo "Issued certificate names another workload; discarding" >&2
     rm -f "${CERT_FILE}.new" "${CHAIN_FILE}.new"
     exit 1
   fi
@@ -185,6 +247,15 @@ export AWS_CONFIG_FILE="${AWS_CONFIG_FILE_PATH}"
 export AWS_PROFILE="${PROFILE_NAME}"
 
 if [ $# -gt 0 ]; then
+  # The application can outlive a 90-day identity. Refresh daily in the same
+  # container; AWS reads the certificate path on each credential request.
+  (
+    while sleep 86400; do
+      if ! "$0" "${ENV_PREFIX}" >/dev/null; then
+        echo "Roles Anywhere identity refresh failed; will retry in one day" >&2
+      fi
+    done
+  ) &
   exec "$@"
 fi
 

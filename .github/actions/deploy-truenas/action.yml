@@ -227,10 +227,9 @@ runs:
             "TRUST_ANCHOR_ARN": get_param("/ahara/machines/trust-anchor-arn"),
             "PROFILE_ARN": get_param("/ahara/machines/profile-arn"),
             "ENTRY_ROLE_ARN": get_param("/ahara/machines/entry-role-arn"),
-            # The trust appliance. A workload enrolls against it once, an
-            # operator approves that request, and the certificate renews
-            # itself from then on — so no secret is minted here and nothing
-            # expires on a deploy cadence.
+            # The trust appliance. A declared workload enrolls unattended and
+            # renews with its current certificate, so no secret is minted here
+            # and nothing expires on a deploy cadence.
             "ENROLLMENT_URL": "https://trust.local.ahara.io:8443",
         }
 
