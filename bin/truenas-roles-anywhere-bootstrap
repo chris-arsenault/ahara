@@ -8,10 +8,10 @@
 # volume, obtains a certificate from the trust appliance, writes an AWS config
 # file, and then execs the requested command with AWS_PROFILE set.
 #
-# There is no enrollment secret. A first request waits for an operator to
-# approve it in the appliance's portal, which binds the approval to that
-# request's key rather than to the name it asks for; afterwards the container
-# renews by presenting the certificate it already holds, with nobody involved.
+# There is no enrollment secret and no approval step. The trust appliance
+# issues to workload ids declared in its own site policy and refuses anything
+# else, so a container whose id is declared starts unattended; afterwards it
+# renews by presenting the certificate it already holds.
 set -euo pipefail
 
 ENV_PREFIX="${1:-AWS_RA}"
@@ -109,8 +109,8 @@ print(json.dumps({
 }))
 PY
 
-  # Renewal presents the certificate already held, so it needs no operator.
-  # A first enrollment has nothing to present and waits for one.
+  # Renewal presents the certificate already held. A first enrollment has
+  # nothing to present, so it is gated by the declaration instead.
   if [ -f "${CERT_FILE}" ]; then
     ENDPOINT="${ENROLLMENT_URL}/renew"
     AUTH_ARGS=(--cert "${CERT_FILE}" --key "${KEY_FILE}")
@@ -131,13 +131,13 @@ PY
 
   case "${HTTP_CODE}" in
     200) ;;
-    202)
-      echo "Enrollment for ${WORKLOAD_ID} is waiting for approval." >&2
-      echo "Approve it at the trust appliance, then restart this container." >&2
-      exit 1
-      ;;
     000)
       echo "Trust appliance unreachable at ${ENROLLMENT_URL}" >&2
+      exit 1
+      ;;
+    403)
+      echo "${WORKLOAD_ID} is not declared on the trust appliance." >&2
+      echo "Add it to identity.allowedWorkloads in ahara-trust and deploy." >&2
       exit 1
       ;;
     *)

@@ -859,7 +859,7 @@ AWS_RA_BACKUP_ROLE_ARN
 
 None of these is a secret; they are public identifiers plus the LAN address of the trust appliance. Do not add them to `secret-paths.yml`.
 
-The first deploy of a new workload does not finish on its own. The container requests a certificate, the request appears in the trust appliance's portal, and it starts only once an operator approves it there. Restart the container after approving. Later deploys of the same workload need no attention, because it renews with the certificate it already holds.
+Declare the workload id on the trust appliance before the first deploy. Add `spiffe://ahara/<prefix>/<name>` to `identity.allowedWorkloads` in `ahara-trust`'s `hosts/trust/site.nix` and let the appliance pick it up. The container then enrolls unattended; an undeclared id is refused and the container's log says which id was rejected.
 
 ### 8d. Bootstrap the container identity
 
@@ -911,7 +911,7 @@ On boot, the helper:
 4. Configures a second profile that assumes the app-owned workload role
 5. Executes the service with that profile active
 
-A valid certificate lets the service restart with nobody involved. Within a week of expiry the helper renews by presenting the certificate it holds, which also needs no operator. Only a container with no certificate at all — a first deploy, or one whose volume was lost — waits for an approval in the trust appliance's portal.
+A valid certificate lets the service restart with nobody involved. Within a week of expiry the helper renews by presenting the certificate it holds. A container with no certificate at all — a first deploy, or one whose volume was lost — enrolls afresh, which also needs nobody as long as its id is declared.
 
 For the full TrueNAS runtime guide, see [AWS Access from TrueNAS Services](TRUENAS-DEPLOY.md#aws-access-from-truenas-services).
 
