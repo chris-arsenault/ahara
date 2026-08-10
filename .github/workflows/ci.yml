@@ -180,9 +180,12 @@ jobs:
                   rust_dir = os.path.dirname(sorted(cargo_files, key=lambda p: p.count('/'))[0]) or '.'
               else:
                   rust_dir = 'backend'
+              typescript_dir_override = cfg.get('typescript_dir')
               pkg_jsons = [p for p in glob.glob('**/package.json', recursive=True)
                            if 'node_modules' not in p and 'backend' not in p]
-              if pkg_jsons:
+              if typescript_dir_override:
+                  ts_dir = typescript_dir_override
+              elif pkg_jsons:
                   ts_dir = os.path.dirname(sorted(pkg_jsons, key=lambda p: p.count('/'))[0]) or '.'
               else:
                   ts_dir = 'frontend'

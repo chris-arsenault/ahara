@@ -70,6 +70,8 @@ stack:                   # Declares which lint/build/deploy steps to run
   - terraform            # terraform fmt, terraform apply
   - vendor               # third-party/upstream-image Compose config validation
   - nix                  # docker-build of ci/Dockerfile.check: flake evaluate + VM tests
+rust_dir: backend        # Optional source-root override when auto-detection is ambiguous
+typescript_dir: apps/web # Optional source-root override for repos with several package.json files
 migrations: db/migrations  # Optional — enables run-migrations step
 truenas: true            # Optional — enables Docker + Komodo deploy
 truenas_images: false    # Optional — skip GHCR image build for upstream-image Compose stacks
@@ -133,7 +135,9 @@ function name or invoke the Lambda.
 
 ## Standard Project Layout
 
-The shared workflow auto-detects source directories from the filesystem:
+The shared workflow auto-detects source directories from the filesystem. Set
+`rust_dir` or `typescript_dir` in `platform.yml` when a repository contains
+more than one candidate at the same depth.
 
 - **Rust**: finds the shallowest `Cargo.toml` (typically `backend/`)
 - **TypeScript**: finds the shallowest `package.json` outside `node_modules` and backend dirs (typically `frontend/`)
