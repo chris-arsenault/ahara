@@ -339,7 +339,8 @@ jobs:
         working-directory: ${{ steps.config.outputs.typescript_dir }}
         run: |
           if pnpm exec vitest --help > /dev/null 2>&1; then
-            pnpm exec vitest run --coverage
+            mkdir -p coverage
+            pnpm exec vitest run --coverage --reporter=default --reporter=junit --outputFile=coverage/junit.xml
           fi
 
       - name: Save pnpm cache
@@ -437,57 +438,34 @@ jobs:
         if: steps.config.outputs.has_nix == 'true'
         run: docker build --target test -f ci/Dockerfile.check .
 
-      # ── SonarQube ───────────────────────────────────────────
+      # ── Engineering quality report ─────────────────────────
+
+      - name: Analyze maintainability with Qlty
+        if: always()
+        uses: chris-arsenault/ahara/.github/actions/collect-engineering-report@main
+        continue-on-error: true
+
+      - name: Upload engineering report inputs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: engineering-report-${{ github.run_id }}
+          include-hidden-files: true
+          if-no-files-found: ignore
+          retention-days: 7
+          path: |
+            .ahara-ci-report/
+            **/coverage/lcov.info
+            **/coverage/junit.xml
+            **/test-results/**/*.xml
+
+      # ── AWS deployment credentials ─────────────────────────
 
       - uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: ${{ secrets.OIDC_ROLE }}
           role-session-name: GitHubActions-${{ github.run_id }}
           aws-region: us-east-1
-
-      - name: Build sonar sources list
-        id: sonar
-        run: |
-          set -euo pipefail
-          sources=""
-          exclusions="**/.terraform/**"
-          extra=""
-          if [ "${{ steps.config.outputs.has_rust }}" = "true" ]; then
-            sources="${sources:+$sources,}${{ steps.config.outputs.rust_dir }}"
-            exclusions="${exclusions},**/target/**,**/target-clippy/**,**/target-cov/**,**/target-lambda/**"
-          fi
-          if [ "${{ steps.config.outputs.has_typescript }}" = "true" ]; then
-            sources="${sources:+$sources,}${{ steps.config.outputs.typescript_dir }}/src"
-            exclusions="${exclusions},**/node_modules/**,**/dist/**"
-          fi
-          if [ "${{ steps.config.outputs.has_python }}" = "true" ]; then
-            sources="${sources:+$sources,}${{ steps.config.outputs.python_dir }}/src"
-          fi
-          if [ "${{ steps.config.outputs.has_terraform }}" = "true" ]; then
-            sources="${sources:+$sources,}infrastructure/terraform"
-          fi
-          if [ -z "$sources" ]; then
-            sources="."
-          fi
-          extra_args=""
-          if [ "${{ steps.config.outputs.has_rust }}" = "true" ]; then
-            extra_args="${extra_args} -Dsonar.rust.lcov.reportPaths=${{ steps.config.outputs.rust_dir }}/coverage/lcov.info"
-          fi
-          if [ "${{ steps.config.outputs.has_typescript }}" = "true" ]; then
-            extra_args="${extra_args} -Dsonar.javascript.lcov.reportPaths=${{ steps.config.outputs.typescript_dir }}/coverage/lcov.info"
-          fi
-          echo "sources=${sources}" >> "$GITHUB_OUTPUT"
-          echo "exclusions=${exclusions}" >> "$GITHUB_OUTPUT"
-          echo "extra_args=${extra_args}" >> "$GITHUB_OUTPUT"
-        shell: bash
-
-      - uses: chris-arsenault/ahara/.github/actions/sonar-scan@main
-        continue-on-error: true
-        with:
-          project-key: ${{ steps.config.outputs.project }}
-          sources: ${{ steps.sonar.outputs.sources }}
-          exclusions: ${{ steps.sonar.outputs.exclusions }}
-          extra-args: ${{ steps.sonar.outputs.extra_args }}
 
       # ── Deploy (main only) ─────────────────────────────────
 
@@ -789,6 +767,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+      - uses: actions/download-artifact@v5
+        continue-on-error: true
+        with:
+          name: engineering-report-${{ github.run_id }}
+          path: .engineering-report
       - uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: ${{ secrets.OIDC_ROLE }}

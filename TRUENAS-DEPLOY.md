@@ -22,7 +22,7 @@ The shared reusable workflow handles steps 2-3 automatically when `truenas: true
 
 ## Project Layout
 
-### Single-image project (e.g., nas-sonarqube)
+### Single-image project (e.g., nas-falkordb)
 
 ```
 <project>/
@@ -409,4 +409,4 @@ jobs:
 The ALB has a WAF with `AWSManagedRulesCommonRuleSet`. The `SizeRestrictions_BODY` rule blocks request bodies over 8KB. If your service accepts large uploads through the reverse proxy:
 
 1. Add `max_body_size` to the route in `reverse_proxy_routes` (nginx layer)
-2. The WAF has an exemption for `sonar.ahara.io/api/ce/submit` — similar exemptions can be added in `ahara-infra/infrastructure/terraform/network/waf.tf`
+2. The WAF blocks bodies over the managed `SizeRestrictions_BODY` limit. Any exception needs an explicit host/path rule in `ahara-infra/infrastructure/terraform/network/waf.tf`.

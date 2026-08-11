@@ -42,15 +42,16 @@ The shared workflow reads `platform.yml` and runs the appropriate steps based on
 5. **Terraform lint** — `terraform fmt -check -recursive` in `infrastructure/terraform/`
 6. **Vendor config lint** — `docker compose config` for `stack: [vendor]` repos
 7. **Nix checks** — `docker build` of `ci/Dockerfile.check` (flake evaluate + VM test targets) for `stack: [nix]` repos; no nix installer on the runner. VM tests must be single-machine and KVM-free so they complete under TCG emulation
-8. **SonarQube scan** — auto-configured sources, exclusions, and coverage report paths from stack
-9. **Deploy (main only)** — cargo-lambda build, pnpm build, migrations, terraform apply
-10. **TrueNAS deploy (if configured)** — optional Docker build/GHCR push, then Komodo deploy
-11. **Grafana dashboard deploy (if configured)** — product-owned dashboards are pushed through the shared dashboard deploy Lambda
-12. **Report** — auto-detects lint/test outcomes and duration via GitHub API
+8. **Qlty maintainability scan** — pinned CLI analysis for complexity, duplication, structure, and size
+9. **Engineering report artifact** — retains Qlty JSON, JUnit XML, and LCOV for the report job
+10. **Deploy (main only)** — cargo-lambda build, pnpm build, migrations, terraform apply
+11. **TrueNAS deploy (if configured)** — optional Docker build/GHCR push, then Komodo deploy
+12. **Grafana dashboard deploy (if configured)** — product-owned dashboards are pushed through the shared dashboard deploy Lambda
+13. **Report** — normalizes GitHub checks, tests, coverage, and Qlty output into PostgreSQL
 
 ### What it does NOT do
 
-- .NET builds (use `sonar-scan-dotnet-begin/end` actions and a custom workflow)
+- .NET builds (use a custom workflow)
 - Matrix strategies (e.g., websites' multi-app typecheck)
 - Custom deploy flows requiring secrets beyond OIDC_ROLE and STATE_BUCKET
 
@@ -61,7 +62,7 @@ The shared workflow reads `platform.yml` and runs the appropriate steps based on
 Every project must have a `platform.yml` in the repo root:
 
 ```yaml
-project: <name>          # Project key (sonar, concurrency groups, migrations)
+project: <name>          # Project key (reporting, concurrency groups, migrations)
 prefix: <prefix>         # AWS resource prefix (usually same as project)
 stack:                   # Declares which lint/build/deploy steps to run
   - rust                 # cargo clippy, rustfmt, cargo-lambda build
@@ -199,12 +200,12 @@ terraform-fmt-check:
 
 ## Step Naming Convention
 
-The shared `report-build` action auto-detects lint and test outcomes by step name prefix. Custom workflows must follow this convention:
+The shared `report-build` action records every GitHub Actions step and classifies lint and test outcomes by name prefix. Custom workflows must follow this convention:
 
 - Steps starting with **`Lint`** are counted as lint (e.g., `Lint clippy`, `Lint eslint`, `Lint terraform`)
 - Steps starting with **`Test`** are counted as test (e.g., `Test core`, `Test frontend`)
 
-The report action queries the GitHub API for all step names and reports `lint_passed` / `test_passed` accordingly.
+The report action queries the GitHub API for step status and duration. It also parses downloaded JUnit and LCOV artifacts when present.
 
 ---
 
@@ -219,31 +220,33 @@ This prevents drift — if someone removes a lint step, CI fails immediately.
 
 ---
 
-## SonarQube Integration
+## Qlty and Engineering Reporting
 
-The shared workflow runs SonarQube analysis automatically. It:
-- Reads the CI token and URL from SSM (`/ahara/sonarqube/ci-token`, `/ahara/sonarqube/url`)
-- Builds sources/exclusions lists from the stack declaration
-- Passes `-Dsonar.terraform.provider.aws.version=6` for accurate terraform analysis
+The shared workflow runs Qlty CLI 0.641.0 from a checksum-verified release. It records:
 
-SonarQube is non-blocking (`continue-on-error: true`).
+- file and function complexity, cyclomatic complexity, LOC, and cohesion
+- duplication and structural findings with exact source ranges
+- estimated remediation effort
+- immutable analyzed source, deduplicated by repository, commit, and path
+- GitHub check status and duration
+- JUnit suite counts and duration
+- LCOV line and branch coverage by file
 
-### .NET projects
+Commit `.qlty/qlty.toml` when a repository needs exclusions or test patterns. Repositories without one use the shared maintainability-only baseline. The scan does not enable Qlty security plugins; Opengrep remains the SAST system.
 
-.NET requires a different scanner that wraps the build. Use the split actions:
+Qlty is non-blocking. A failed analyzer run is stored with `status = failed`, while completed scans become available in the `Ahara Engineering Quality` Grafana dashboard. The report job sends size-bounded batches to the existing CI ingest Lambda, which writes to the `ahara_engineering_quality` tenant on TrueNAS PostgreSQL. The custom Grafana source panel reads retained source through the read-only datasource, so it needs no Git-host credential and always renders the exact analyzed commit.
 
-```yaml
-- id: sonar
-  uses: chris-arsenault/ahara/.github/actions/sonar-scan-dotnet-begin@main
-  with:
-    project-key: <name>
+Qlty metrics cover C, C++, C#, Go, Java, JavaScript, Kotlin, PHP, Python, Ruby, Rust, Swift, TypeScript, and VB.NET. Unsupported stacks still report checks, tests, and coverage.
 
-# ... dotnet build, dotnet test ...
+### Initial cutover and Sonar retirement
 
-- uses: chris-arsenault/ahara/.github/actions/sonar-scan-dotnet-end@main
-  with:
-    token: ${{ steps.sonar.outputs.token }}
-```
+Publish and apply the Qlty, database, ingestion, and Grafana changes separately from the staged Sonar retirement changes below. The first infrastructure rollout preserves the existing RDS `ci_builds` history. Terraform provisions the `ahara_engineering_quality` tenant on the existing TrueNAS PostgreSQL service, invokes `ahara-ci-history-migrate` against a repeatable-read snapshot, and only then switches `ci-ingest` to the new tenant. A second idempotent invocation runs after the Lambda update to copy reports written during the first pass. Both invocations verify every source `run_id`; compare the `ci_history_pre_cutover` and `ci_history_post_cutover` Terraform outputs and require `source_rows == verified_rows` before accepting the cutover. Keep the RDS source table until the new dashboard and at least one post-cutover CI report have been verified.
+
+Retire Sonar AWS resources only after the migrated history, dashboard, source panel, and a post-cutover CI report are verified. First apply the destruction configuration in `nas-sonarqube` while that repository still has its OIDC secrets and deployer role. Require a subsequent no-change plan for `projects/nas-sonarqube.tfstate`; this removes its Cognito client, SSM parameters, CI-token Lambda, and Lambda IAM resources without touching TrueNAS.
+
+Then retire the Ahara-owned Sonar wiring in two `ahara-infra` applies. The first apply removes the reverse-proxy route, WAF upload exception, token-Lambda invocation permission, TrueNAS database registration, GitHub Actions repository secrets, and OIDC trust for `nas-sonarqube`. The temporary `project_nas_sonarqube` module declaration must remain for that apply because its child GitHub provider is required to destroy the repository secrets recorded in state. After those secrets are absent from the plan and state, delete `infrastructure/terraform/control/project-nas-sonarqube.tf` and apply again to remove the remaining deployer role, policies, and permissions boundary.
+
+The TrueNAS Sonar application, its Compose/Komodo stack, and its persistent data are not managed by this rollout. Remove them separately from the `nas-sonarqube` service after the Qlty dashboard is accepted.
 
 ---
 
@@ -267,7 +270,7 @@ jobs:
       # ... custom deploy steps ...
 ```
 
-The shared workflow handles all lint/test/sonar/report. Only deploy is custom.
+The shared workflow handles lint, tests, Qlty, and engineering reporting. Only deploy is custom.
 
 ---
 
@@ -275,10 +278,8 @@ The shared workflow handles all lint/test/sonar/report. Only deploy is custom.
 
 | Action | Purpose |
 |--------|---------|
-| `sonar-scan` | SonarQube analysis for non-.NET projects |
-| `sonar-scan-dotnet-begin` | Start .NET SonarQube analysis (before build) |
-| `sonar-scan-dotnet-end` | Finalize .NET SonarQube analysis (after test) |
-| `report-build` | CI dashboard reporting (auto-detects everything) |
+| `collect-engineering-report` | Pinned Qlty maintainability scan and report artifacts |
+| `report-build` | Normalizes and ingests checks, tests, coverage, and Qlty output |
 | `governance-check` | Validates workflow against platform.yml stack |
 | `run-migrations` | Upload and run database migrations |
 | `deploy-truenas` | Docker + Komodo deploy for TrueNAS services |

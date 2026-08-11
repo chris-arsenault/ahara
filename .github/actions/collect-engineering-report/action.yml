@@ -1,0 +1,58 @@
+name: Collect Engineering Report
+description: Run a pinned Qlty maintainability scan and retain normalized CI artifacts.
+
+runs:
+  using: composite
+  steps:
+    - name: Install Qlty 0.641.0
+      id: qlty
+      run: |
+        set -euo pipefail
+        case "$(uname -m)" in
+          x86_64)
+            target="x86_64-unknown-linux-gnu"
+            checksum="122f7c2e0c6a9b96850bb2287eb8a6718b73d886e17d300bffa27a20b894e353"
+            ;;
+          aarch64|arm64)
+            target="aarch64-unknown-linux-gnu"
+            checksum="c687bb99d160faf22052283261a7c5390082640b1886308e4d13fd26c2646d32"
+            ;;
+          *)
+            echo "::error::Qlty is not pinned for runner architecture $(uname -m)"
+            exit 1
+            ;;
+        esac
+        install_dir="${RUNNER_TEMP}/ahara-qlty-0.641.0"
+        archive="${install_dir}/qlty.tar.xz"
+        mkdir -p "${install_dir}"
+        curl --proto '=https' --tlsv1.2 -fsSL "https://github.com/qltysh/qlty/releases/download/v0.641.0/qlty-${target}.tar.xz" -o "${archive}"
+        printf '%s  %s\n' "${checksum}" "${archive}" | sha256sum --check
+        tar -xJf "${archive}" -C "${install_dir}"
+        echo "binary=${install_dir}/qlty-${target}/qlty" >> "${GITHUB_OUTPUT}"
+        echo "digest=sha256:${checksum}" >> "${GITHUB_OUTPUT}"
+      shell: bash
+
+    - name: Analyze maintainability
+      run: |
+        set -euo pipefail
+        mkdir -p .ahara-ci-report/quality
+        generated_config=false
+        if [ ! -f .qlty/qlty.toml ]; then
+          mkdir -p .qlty
+          cp "${GITHUB_ACTION_PATH}/default-qlty.toml" .qlty/qlty.toml
+          generated_config=true
+          echo "::notice::Using the shared Qlty baseline; commit .qlty/qlty.toml to override it."
+        fi
+
+        status=complete
+        started_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+        "${{ steps.qlty.outputs.binary }}" metrics --all --json --no-upgrade-check > .ahara-ci-report/quality/files.json || status=failed
+        "${{ steps.qlty.outputs.binary }}" metrics --all --functions --json --no-upgrade-check > .ahara-ci-report/quality/functions.json || status=failed
+        "${{ steps.qlty.outputs.binary }}" smells --all --json --no-upgrade-check > .ahara-ci-report/quality/findings.json || status=failed
+
+        QLTY_STATUS="${status}" QLTY_STARTED_AT="${started_at}" GENERATED_CONFIG="${generated_config}" QLTY_DIGEST="${{ steps.qlty.outputs.digest }}" QLTY_CONFIG=".qlty/qlty.toml" python3 "${GITHUB_ACTION_PATH}/write-metadata.py"
+
+        if [ "${status}" != "complete" ]; then
+          echo "::warning::Qlty analysis did not complete; the failed scan will still be reported."
+        fi
+      shell: bash

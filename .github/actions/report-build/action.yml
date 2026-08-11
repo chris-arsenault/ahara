@@ -1,109 +1,15 @@
-name: Report Build
-description: |
-  Send build results to the platform CI dashboard. Auto-detects lint/test
-  outcomes from step names and computes duration from the GitHub API.
-
-  Convention: name lint steps starting with "Lint" and test steps starting
-  with "Test". The action queries the workflow jobs API to find them.
+name: Report Engineering Data
+description: Normalize build, test, coverage, and Qlty artifacts into the engineering datastore.
 
 runs:
   using: composite
   steps:
-    - run: |
+    - name: Ingest engineering report
+      run: |
         set -euo pipefail
-
-        WEBHOOK_URL=$(aws ssm get-parameter --name /ahara/ci/url --query Parameter.Value --output text --region us-east-1)
-        TOKEN=$(aws ssm get-parameter --name /ahara/ci/ingest-token --with-decryption --query Parameter.Value --output text --region us-east-1)
-
-        BODY=$(python3 << 'PYEOF'
-        import json, os, urllib.request, sys
-        from datetime import datetime, timezone
-
-        token = os.environ.get('GITHUB_TOKEN', '')
-        api = os.environ.get('GITHUB_API_URL', 'https://api.github.com')
-        repo = os.environ.get('GITHUB_REPOSITORY', '')
-        run_id = os.environ.get('GITHUB_RUN_ID', '')
-
-        # Query jobs API
-        lint_results = []
-        test_results = []
-        earliest_start = None
-        latest_end = None
-        overall_status = 'success'
-
-        url = f'{api}/repos/{repo}/actions/runs/{run_id}/jobs?per_page=100'
-        headers = {'Accept': 'application/vnd.github+json'}
-        if token:
-            headers['Authorization'] = f'Bearer {token}'
-        req = urllib.request.Request(url, headers=headers)
-        data = json.loads(urllib.request.urlopen(req).read())
-
-        for job in data.get('jobs', []):
-            # Skip the report job itself
-            name = job.get('name', '').lower()
-            if 'report' in name:
-                continue
-
-            # Track overall status
-            conclusion = job.get('conclusion', '')
-            if conclusion in ('failure', 'cancelled'):
-                overall_status = conclusion
-
-            # Track timing
-            started = job.get('started_at')
-            ended = job.get('completed_at')
-            if started:
-                t = datetime.fromisoformat(started.replace('Z', '+00:00'))
-                if earliest_start is None or t < earliest_start:
-                    earliest_start = t
-            if ended:
-                t = datetime.fromisoformat(ended.replace('Z', '+00:00'))
-                if latest_end is None or t > latest_end:
-                    latest_end = t
-
-            # Check step names
-            for step in job.get('steps', []):
-                sname = step.get('name', '')
-                sconclusion = step.get('conclusion', 'skipped')
-                if sconclusion == 'skipped':
-                    continue
-                if sname.startswith('Lint'):
-                    lint_results.append(sconclusion == 'success')
-                elif sname.startswith('Test'):
-                    test_results.append(sconclusion == 'success')
-
-        # Build report
-        report = {
-            'repo': os.environ.get('GITHUB_REPOSITORY', ''),
-            'workflow': os.environ.get('GITHUB_WORKFLOW', ''),
-            'status': overall_status,
-            'branch': os.environ.get('GITHUB_REF_NAME', ''),
-            'commit_sha': os.environ.get('GITHUB_SHA', ''),
-            'run_id': run_id,
-            'run_url': f'{os.environ.get("GITHUB_SERVER_URL", "")}/{repo}/actions/runs/{run_id}',
-        }
-
-        if lint_results:
-            report['lint_passed'] = all(lint_results)
-        if test_results:
-            report['test_passed'] = all(test_results)
-        if earliest_start and latest_end:
-            report['duration_seconds'] = int((latest_end - earliest_start).total_seconds())
-
-        print(json.dumps(report))
-        PYEOF
-        )
-
-        response_file="$(mktemp)"
-        trap 'rm -f "$response_file"' EXIT
-        status_code=$(curl -sS -o "$response_file" -w '%{http_code}' -X POST "${WEBHOOK_URL}/api/ci/report" \
-          -H "Content-Type: application/json" \
-          -H "Authorization: Bearer ${TOKEN}" \
-          -d "$BODY" || true)
-        if [ "$status_code" -lt 200 ] || [ "$status_code" -ge 300 ]; then
-          echo "::warning::CI report POST failed with HTTP ${status_code}"
-          sed -n '1,80p' "$response_file"
-        fi
+        webhook_url=$(aws ssm get-parameter --name /ahara/ci/url --query Parameter.Value --output text --region us-east-1)
+        ingest_token=$(aws ssm get-parameter --name /ahara/ci/ingest-token --with-decryption --query Parameter.Value --output text --region us-east-1)
+        WEBHOOK_URL="${webhook_url}" INGEST_TOKEN="${ingest_token}" python3 "${GITHUB_ACTION_PATH}/report.py"
       env:
         GITHUB_TOKEN: ${{ github.token }}
       shell: bash

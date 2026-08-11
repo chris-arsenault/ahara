@@ -1,0 +1,23 @@
+config_version = "0"
+
+exclude_patterns = [
+  "**/coverage/**",
+  "**/dist/**",
+  "**/generated/**",
+  "**/node_modules/**",
+]
+
+test_patterns = [
+  "**/test/**",
+  "**/tests/**",
+  "**/*.test.*",
+  "**/*_test.*",
+  "**/test_*.*",
+]
+
+[smells]
+mode = "comment"
+
+[[source]]
+name = "default"
+default = true

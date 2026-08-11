@@ -16,9 +16,9 @@
 | **Testing** (what to test, testcontainers, mocks, organization) | [ahara-standards/standards/testing.md](https://github.com/chris-arsenault/ahara-standards/blob/main/standards/testing.md) |
 | **Git practices** (gitignore, branching, commits) | [ahara-standards/standards/git.md](https://github.com/chris-arsenault/ahara-standards/blob/main/standards/git.md) |
 | **Custom ESLint rules** | `npm install -D github:chris-arsenault/ahara-standards` — import from `@ahara/standards/eslint-rules` |
-| **CI/CD workflow** (shared workflow, platform.yml, governance, SonarQube) | [CI-WORKFLOW.md](CI-WORKFLOW.md) |
+| **CI/CD workflow** (shared workflow, platform.yml, governance, Qlty reporting) | [CI-WORKFLOW.md](CI-WORKFLOW.md) |
 | **TrueNAS deploy** (Docker, Komodo, secret-paths.yml, Roles Anywhere, networking) | [TRUENAS-DEPLOY.md](TRUENAS-DEPLOY.md) |
-| **Shared GitHub Actions** | `sonar-scan`, `report-build`, `governance-check`, `run-migrations`, `deploy-truenas` in `ahara/.github/actions/` |
+| **Shared GitHub Actions** | `collect-engineering-report`, `report-build`, `governance-check`, `run-migrations`, `deploy-truenas` in `ahara/.github/actions/` |
 | **Platform CLI tools** | `~/src/ahara/bin/` — `db-migrate`, `db-seed`, `db-rollback`, `db-drop`, `db-noop`, `db-restore` |
 | **Standards index** | [ahara-standards/standards/README.md](https://github.com/chris-arsenault/ahara-standards/blob/main/standards/README.md) |
 | **Dynamic OpenGraph** (per-route OG tags for SPAs) | [OPENGRAPH.md](OPENGRAPH.md) |
@@ -943,7 +943,7 @@ jobs:
     secrets: inherit
 ```
 
-The shared workflow reads `platform.yml` and runs lint, test, sonar, deploy, and reporting automatically. No per-project configuration needed beyond declaring the stack.
+The shared workflow reads `platform.yml` and runs lint, tests, Qlty maintainability analysis, deploy, and engineering reporting automatically. Commit `.qlty/qlty.toml` to override the shared Qlty baseline.
 
 For TrueNAS-hosted services, see **[TRUENAS-DEPLOY.md](TRUENAS-DEPLOY.md)**.
 
@@ -1065,12 +1065,16 @@ All platform SSM parameters are published by the `ahara-infra` services layer un
 | `/ahara/ci/url` | String | ahara-infra |
 | `/ahara/ci/ingest-token` | SecureString | ahara-infra |
 
-#### /ahara/sonarqube/*
+#### /ahara/truenas-db/ahara-observability/engineering/*
 
 | Parameter | Type | Source |
 |-----------|------|--------|
-| `/ahara/sonarqube/url` | String | ahara-infra |
-| `/ahara/sonarqube/ci-token` | SecureString | ahara-infra |
+| `username` | String | TrueNAS database provisioner |
+| `password` | SecureString | TrueNAS database provisioner |
+| `database` | String | TrueNAS database provisioner |
+| `reader/username` | String | TrueNAS database provisioner |
+| `reader/password` | SecureString | TrueNAS database provisioner |
+| `reader/database` | String | TrueNAS database provisioner |
 
 #### /ahara/alarms/*
 
