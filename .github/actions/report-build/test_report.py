@@ -1,9 +1,12 @@
 import importlib.util
+import io
 import json
 import os
 import tempfile
 import unittest
+import urllib.error
 from pathlib import Path
+from unittest import mock
 
 
 MODULE_PATH = Path(__file__).with_name("report.py")
@@ -151,6 +154,28 @@ class ReportNormalizationTests(unittest.TestCase):
         self.assertEqual(quality["sources"][0]["path"], "src/lib.rs")
         self.assertIn("fn work", quality["sources"][0]["content"])
         self.assertEqual(len(quality["functions"][0]["metric_key"]), 64)
+
+    def test_post_json_reports_rejected_endpoint(self):
+        os.environ["WEBHOOK_URL"] = "https://ci.services.ahara.io"
+        os.environ["INGEST_TOKEN"] = "test-token"
+        error = urllib.error.HTTPError(
+            "https://ci.services.ahara.io/api/ci/batch",
+            403,
+            "Forbidden",
+            {},
+            io.BytesIO(b'{"error":"blocked"}'),
+        )
+
+        with mock.patch.object(
+            REPORT.urllib.request, "urlopen", side_effect=error
+        ) as urlopen:
+            with self.assertRaisesRegex(
+                RuntimeError,
+                r'POST /api/ci/batch failed: HTTP 403: \{"error":"blocked"\}',
+            ):
+                REPORT.post_json("/api/ci/batch", {"kind": "quality_files"})
+
+        self.assertEqual(urlopen.call_count, 3)
 
 
 if __name__ == "__main__":

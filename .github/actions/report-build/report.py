@@ -468,9 +468,17 @@ def post_json(path, payload):
                 if 200 <= response.status < 300:
                     return
                 raise RuntimeError(f"HTTP {response.status}")
-        except (urllib.error.URLError, RuntimeError):
+        except urllib.error.HTTPError as error:
             if attempt == 2:
-                raise
+                detail = error.read().decode(errors="replace").strip()
+                suffix = f": {detail}" if detail else ""
+                raise RuntimeError(
+                    f"POST {path} failed: HTTP {error.code}{suffix}"
+                ) from error
+            time.sleep(2**attempt)
+        except (urllib.error.URLError, RuntimeError) as error:
+            if attempt == 2:
+                raise RuntimeError(f"POST {path} failed: {error}") from error
             time.sleep(2**attempt)
 
 
@@ -603,5 +611,5 @@ if __name__ == "__main__":
     try:
         main()
     except Exception as error:
-        print(f"::warning::Engineering report ingestion failed: {error}")
-        sys.exit(0)
+        print(f"::error::Engineering report ingestion failed: {error}")
+        sys.exit(1)
