@@ -115,6 +115,17 @@ class ReportNormalizationTests(unittest.TestCase):
                             "codeLines": 7,
                             "complexity": 3,
                             "cyclomatic": 4,
+                        },
+                        {
+                            "name": "helper",
+                            "fullyQualifiedName": "helper",
+                            "path": "src/lib.rs",
+                            "kind": "COMPONENT_TYPE_FUNCTION",
+                            "language": "LANGUAGE_RUST",
+                            "lines": 2,
+                            "codeLines": 2,
+                            "complexity": 1,
+                            "cyclomatic": 1,
                         }
                     ]
                 }
@@ -139,18 +150,51 @@ class ReportNormalizationTests(unittest.TestCase):
                         },
                         "partialFingerprints": {"function.name": "work"},
                         "properties": {"structural_hash": "abc"},
-                    }
+                    },
+                    {
+                        "tool": "qlty",
+                        "driver": "structure",
+                        "ruleKey": "return-statements",
+                        "message": "Too many returns",
+                        "level": "LEVEL_LOW",
+                        "language": "LANGUAGE_RUST",
+                        "category": "CATEGORY_STRUCTURE",
+                        "effortMinutes": 5,
+                        "location": {
+                            "path": "src/lib.rs",
+                            "range": {"startLine": 7, "endLine": 8},
+                        },
+                        "partialFingerprints": {"function.name": "helper"},
+                    },
+                    {
+                        "tool": "qlty",
+                        "driver": "structure",
+                        "ruleKey": "function-complexity",
+                        "message": "Function with high complexity: work",
+                        "level": "LEVEL_MEDIUM",
+                        "language": "LANGUAGE_RUST",
+                        "category": "CATEGORY_STRUCTURE",
+                        "effortMinutes": 15,
+                        "value": 3,
+                        "location": {
+                            "path": "src/lib.rs",
+                            "range": {"startLine": 1, "endLine": 3},
+                        },
+                        "partialFingerprints": {"function.name": "work"},
+                    },
                 ]
             )
         )
 
         quality = REPORT.normalize_quality()
         self.assertEqual(quality["aggregates"]["files"], 1)
-        self.assertEqual(quality["aggregates"]["functions"], 1)
-        self.assertEqual(quality["aggregates"]["debt_minutes"], 10)
+        self.assertEqual(quality["aggregates"]["functions"], 2)
+        self.assertEqual(quality["aggregates"]["debt_minutes"], 30)
         self.assertEqual(quality["files"][0]["duplicated_lines"], 4)
         self.assertEqual(quality["findings"][0]["start_line"], 2)
-        self.assertEqual(quality["functions"][0]["start_line"], 2)
+        functions = {item["symbol"]: item for item in quality["functions"]}
+        self.assertEqual(functions["work"]["start_line"], 1)
+        self.assertIsNone(functions["helper"]["start_line"])
         self.assertEqual(quality["sources"][0]["path"], "src/lib.rs")
         self.assertIn("fn work", quality["sources"][0]["content"])
         self.assertEqual(len(quality["functions"][0]["metric_key"]), 64)

@@ -290,7 +290,7 @@ def normalize_quality():
     finding_totals = defaultdict(
         lambda: {"finding_count": 0, "debt_minutes": 0, "duplicated_lines": 0}
     )
-    function_locations = defaultdict(list)
+    function_complexity_locations = defaultdict(list)
     findings = []
     for finding in raw_findings:
         location = finding.get("location") or {}
@@ -301,8 +301,12 @@ def normalize_quality():
         if partial_fingerprints:
             properties["partial_fingerprints"] = partial_fingerprints
         function_name = partial_fingerprints.get("function.name")
-        if function_name and range_data.get("startLine"):
-            function_locations[(path, function_name)].append(
+        if (
+            finding.get("ruleKey") == "function-complexity"
+            and function_name
+            and range_data.get("startLine")
+        ):
+            function_complexity_locations[(path, function_name)].append(
                 int(range_data["startLine"])
             )
         fingerprint_source = {
@@ -375,7 +379,7 @@ def normalize_quality():
 
     functions = []
     function_occurrences = defaultdict(int)
-    for locations in function_locations.values():
+    for locations in function_complexity_locations.values():
         locations.sort()
     for stat in function_document.get("stats", []):
         if stat.get("kind") != "COMPONENT_TYPE_FUNCTION" or not stat.get("path"):
@@ -385,7 +389,7 @@ def normalize_quality():
         occurrence_key = (path, symbol)
         occurrence = function_occurrences[occurrence_key]
         function_occurrences[occurrence_key] += 1
-        locations = function_locations[occurrence_key]
+        locations = function_complexity_locations[occurrence_key]
         metric_key = hashlib.sha256(
             f"{path}\0{symbol}\0{occurrence}".encode()
         ).hexdigest()

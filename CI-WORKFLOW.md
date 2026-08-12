@@ -224,7 +224,9 @@ This prevents drift — if someone removes a lint step, CI fails immediately.
 
 The shared workflow runs Qlty CLI 0.641.0 from a checksum-verified release. It records:
 
-- file and function complexity, cyclomatic complexity, LOC, and cohesion
+- file and function complexity, cyclomatic complexity, LOC, and cohesion;
+  function locations come only from Qlty's exact `function-complexity` ranges,
+  never from an unrelated smell in the same function
 - duplication and structural findings with exact source ranges
 - estimated remediation effort
 - immutable analyzed source, deduplicated by repository, commit, and path
