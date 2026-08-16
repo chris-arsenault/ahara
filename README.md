@@ -1,26 +1,34 @@
 # Platform
 
-Index repo for the platform layer — shared AWS infrastructure, identity, deployment management, and CI tooling.
+Index repo for the Ahara platform: shared cloud infrastructure, household
+network appliances, identity, observability, deployment tooling, and standards.
 
 ## Repos
 
 | Repo | Purpose | Path |
 |------|---------|------|
-| [ahara-infra](https://github.com/chris-arsenault/ahara-infra) | Consolidated AWS infrastructure — IAM/OIDC/deployer roles (control), VPC/ALB/VPN/DNS (network), Cognito/RDS/migrations/CI ingest/observability (services) — single Terraform state, plus the Rust Lambda workspace and platform DB migrations | `~/src/ahara-infra` |
-| [ahara-observability](https://github.com/chris-arsenault/ahara-observability) | Grafana runtime, platform dashboards, and the engineering-quality datasource | `~/src/ahara-observability` |
-| [nas-falkordb](https://github.com/chris-arsenault/nas-falkordb) | FalkorDB on TrueNAS — upstream-image Docker Compose deployed through Komodo | `~/src/nas-falkordb` |
-| [nas-text-embeddings-inference](https://github.com/chris-arsenault/nas-text-embeddings-inference) | Text Embeddings Inference on TrueNAS — upstream-image Docker Compose deployed through Komodo | `~/src/nas-text-embeddings-inference` |
-| [ahara-tf-patterns](https://github.com/chris-arsenault/ahara-tf-patterns) | Reusable Terraform modules — ALB API, SPA, static site, Cognito, Lambda | `~/src/ahara-tf-patterns` |
+| [ahara-infra](https://github.com/chris-arsenault/ahara-infra) | Consolidated AWS control, network, and service infrastructure; Rust platform Lambdas; platform migrations | `../ahara-infra` |
+| [ahara-tf-patterns](https://github.com/chris-arsenault/ahara-tf-patterns) | Reusable Terraform modules for applications on the shared AWS infrastructure | `../ahara-tf-patterns` |
+| [ahara-standards](https://github.com/chris-arsenault/ahara-standards) | Shared engineering standards, ADRs, implementation patterns, and lint rules | `../ahara-standards` |
+| [ahara-observability](https://github.com/chris-arsenault/ahara-observability) | TrueNAS-hosted Grafana, Alloy, VictoriaMetrics, Loki, Tempo, and compatibility InfluxDB | `../ahara-observability` |
+| [ahara-access](https://github.com/chris-arsenault/ahara-access) | Shared access grants and private asset delivery | `../ahara-access` |
+| [ahara-business](https://github.com/chris-arsenault/ahara-business) | Business systems plus operator administration for users and app authorizations | `../ahara-business` |
+| [ahara-portal](https://github.com/chris-arsenault/ahara-portal) | Public Ahara website and project portfolio | `../ahara-portal` |
+| [ahara-vpn](https://github.com/chris-arsenault/ahara-vpn) | Declarative gateway, firewall, DNS, and WireGuard appliance | `../ahara-vpn` |
+| [ahara-trust](https://github.com/chris-arsenault/ahara-trust) | LAN machine-identity authority and shared internal-certificate issuer | `../ahara-trust` |
+| [ahara-collector](https://github.com/chris-arsenault/ahara-collector) | IoT-LAN device discovery, polling, inventory, and constrained transport | `../ahara-collector` |
+| [nas-falkordb](https://github.com/chris-arsenault/nas-falkordb) | FalkorDB on TrueNAS, deployed through Komodo | `../nas-falkordb` |
+| [nas-text-embeddings-inference](https://github.com/chris-arsenault/nas-text-embeddings-inference) | Text Embeddings Inference on TrueNAS, deployed through Komodo | `../nas-text-embeddings-inference` |
 
 ## Deploy Order
 
 ```
-ahara-infra   (single Terraform apply — control + network + services resolve via the module DAG)
+ahara-infra   (single Terraform apply; control, network, and services resolve through the module DAG)
        │
        └── consuming projects (websites, svap, tastebase, dosekit, etc.)
 ```
 
-Deploy: `cd ~/src/ahara-infra && ./scripts/deploy.sh`
+Deploy: `cd ../ahara-infra && ./scripts/deploy.sh`
 
 ## This Repo Also Contains
 

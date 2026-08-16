@@ -3,6 +3,7 @@
 .drift-audit/
 .claude/
 .shuttlecraft/
+.sulion-paste/
 drift-output.txt
 __pycache__/
 *.py[cod]
