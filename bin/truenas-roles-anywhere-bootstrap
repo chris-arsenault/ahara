@@ -246,6 +246,73 @@ EOF
 export AWS_CONFIG_FILE="${AWS_CONFIG_FILE_PATH}"
 export AWS_PROFILE="${PROFILE_NAME}"
 
+# Secrets the workload reads for itself.
+#
+# Each ${ENV_PREFIX}_SECRET_<NAME> variable holds a parameter path, and its
+# value becomes <NAME>. The paths are declared in the compose file beside the
+# service that uses them: a path is a public identifier, and keeping it next to
+# the consumer is what makes "which secrets does this container hold" a
+# question the compose file answers.
+#
+# Nothing is delivered by the deploy. The workload's own role decides what it
+# may read, derived from its project's namespace (ahara-trust ADR-0002).
+#
+# Failing to fetch fails the container. A service that started anyway would run
+# on whatever was in its environment, which is exactly the stale value this
+# removes.
+secret_prefix="${ENV_PREFIX}_SECRET_"
+secret_names="$(env | sed -n "s/^${secret_prefix}\([A-Z0-9_]*\)=.*/\1/p" | sort)"
+
+if [ -n "${secret_names}" ]; then
+  if ! command -v aws >/dev/null 2>&1; then
+    echo "${ENV_PREFIX}_SECRET_* is set but the AWS CLI is not in this image" >&2
+    exit 1
+  fi
+
+  # Written by the caller only when it wants files rather than an environment:
+  # a vendor image cannot run this wrapper, so an init container writes here
+  # and the application reads the files.
+  WRITE_DIR_VAR="${ENV_PREFIX}_SECRET_DIR"
+  WRITE_DIR="${!WRITE_DIR_VAR:-}"
+  if [ -n "${WRITE_DIR}" ]; then
+    mkdir -p "${WRITE_DIR}"
+    chmod 700 "${WRITE_DIR}"
+  fi
+
+  for name in ${secret_names}; do
+    path_var="${secret_prefix}${name}"
+    path="${!path_var}"
+    if [ -z "${path}" ]; then
+      echo "${path_var} is empty" >&2
+      exit 1
+    fi
+
+    if ! value="$(aws ssm get-parameter --name "${path}" --with-decryption \
+      --query Parameter.Value --output text 2>/dev/null)"; then
+      echo "Cannot read ${path} for ${name}." >&2
+      echo "This workload's role grants its own project's namespace; check the path." >&2
+      exit 1
+    fi
+    if [ -z "${value}" ] || [ "${value}" = "None" ]; then
+      echo "${path} resolved to nothing" >&2
+      exit 1
+    fi
+
+    if [ -n "${WRITE_DIR}" ]; then
+      # Written through a temporary name so a reader started concurrently
+      # never sees a partial secret.
+      printf '%s' "${value}" > "${WRITE_DIR}/.${name}.tmp"
+      chmod 600 "${WRITE_DIR}/.${name}.tmp"
+      mv "${WRITE_DIR}/.${name}.tmp" "${WRITE_DIR}/${name}"
+    else
+      export "${name}=${value}"
+    fi
+    unset value
+  done
+
+  echo "Fetched $(echo "${secret_names}" | wc -w) secret(s) for ${WORKLOAD_ID}" >&2
+fi
+
 if [ $# -gt 0 ]; then
   # The application can outlive a 90-day identity. Refresh daily in the same
   # container; AWS reads the certificate path on each credential request.
