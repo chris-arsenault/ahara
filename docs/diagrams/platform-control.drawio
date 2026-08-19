@@ -1,0 +1,179 @@
+<mxfile host="Electron" agent="Codex Ahara architecture" version="29.6.6">
+  <diagram name="Control and identity" id="ahara-control-identity">
+    <mxGraphModel dx="2000" dy="1120" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2000" pageHeight="1120" math="0" shadow="0" background="#0B1017">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="title" parent="1" vertex="1" value="AHARA PLATFORM — IDENTITY, DELIVERY &amp; OBSERVABILITY" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontColor=#F8FAFC;fontSize=27;fontStyle=1;fontFamily=Helvetica;">
+          <mxGeometry x="40" y="24" width="1500" height="38" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle" parent="1" vertex="1" value="Who may change the platform, how local machines obtain cloud authority, and where operational data lands" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontColor=#94A3B8;fontSize=13;fontFamily=Helvetica;">
+          <mxGeometry x="40" y="66" width="1700" height="24" as="geometry" />
+        </mxCell>
+
+        <mxCell id="delivery-zone" parent="1" vertex="1" value="" style="rounded=1;arcSize=6;whiteSpace=wrap;html=1;fillColor=#101821;strokeColor=#64748B;strokeWidth=2;">
+          <mxGeometry x="40" y="120" width="390" height="910" as="geometry" />
+        </mxCell>
+        <mxCell id="aws-zone" parent="1" vertex="1" value="" style="rounded=1;arcSize=6;whiteSpace=wrap;html=1;fillColor=#0E1722;strokeColor=#2563EB;strokeWidth=2;">
+          <mxGeometry x="465" y="120" width="680" height="910" as="geometry" />
+        </mxCell>
+        <mxCell id="local-zone" parent="1" vertex="1" value="" style="rounded=1;arcSize=6;whiteSpace=wrap;html=1;fillColor=#0D1917;strokeColor=#059669;strokeWidth=2;">
+          <mxGeometry x="1180" y="120" width="780" height="910" as="geometry" />
+        </mxCell>
+
+        <mxCell id="delivery-label" parent="1" vertex="1" value="SOURCE + DELIVERY" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontColor=#CBD5E1;fontSize=12;fontStyle=1;fontFamily=Helvetica;">
+          <mxGeometry x="65" y="140" width="300" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="aws-label" parent="1" vertex="1" value="AWS CONTROL + MANAGED SERVICES" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontColor=#60A5FA;fontSize=12;fontStyle=1;fontFamily=Helvetica;">
+          <mxGeometry x="490" y="140" width="450" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="local-label" parent="1" vertex="1" value="HOUSEHOLD APPLIANCES + WORKLOADS" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontColor=#34D399;fontSize=12;fontStyle=1;fontFamily=Helvetica;">
+          <mxGeometry x="1205" y="140" width="500" height="24" as="geometry" />
+        </mxCell>
+
+        <mxCell id="github" parent="1" vertex="1" value="&lt;div style=&quot;font-size:15px&quot;&gt;&lt;b&gt;GitHub repositories&lt;/b&gt;&lt;/div&gt;&lt;div style=&quot;margin-top:7px;color:#C8D5E1&quot;&gt;main branches&lt;br&gt;release refs for appliances&lt;br&gt;reviewed Terraform + Nix topology&lt;/div&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#17202A;strokeColor=#94A3B8;strokeWidth=2;fontColor=#F1F5F9;fontSize=11;align=left;verticalAlign=top;spacingTop=12;spacingLeft=14;fontFamily=Helvetica;">
+          <mxGeometry x="75" y="195" width="320" height="125" as="geometry" />
+        </mxCell>
+        <mxCell id="actions" parent="1" vertex="1" value="&lt;div style=&quot;font-size:15px&quot;&gt;&lt;b&gt;GitHub Actions&lt;/b&gt;&lt;/div&gt;&lt;div style=&quot;margin-top:7px;color:#C8D5E1&quot;&gt;shared CI workflow&lt;br&gt;Terraform plan/apply&lt;br&gt;release-ref publication&lt;/div&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#142436;strokeColor=#38BDF8;strokeWidth=2;fontColor=#F1F7FB;fontSize=11;align=left;verticalAlign=top;spacingTop=12;spacingLeft=14;fontFamily=Helvetica;">
+          <mxGeometry x="75" y="375" width="320" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="delivery-note" parent="1" vertex="1" value="&lt;b&gt;Ownership boundary&lt;/b&gt;&lt;br&gt;&lt;br&gt;ahara-infra owns the shared AWS control, network, and services stack.&lt;br&gt;&lt;br&gt;ahara-vpn owns the AWS WireGuard endpoint and local gateway image.&lt;br&gt;&lt;br&gt;ahara-trust and ahara-collector own their appliance images." style="rounded=1;arcSize=7;whiteSpace=wrap;html=1;fillColor=#111A23;strokeColor=#475569;strokeWidth=1;fontColor=#B8C5D1;fontSize=11;align=left;verticalAlign=top;spacingTop=13;spacingLeft=13;spacingRight=12;fontFamily=Helvetica;">
+          <mxGeometry x="75" y="570" width="320" height="245" as="geometry" />
+        </mxCell>
+        <mxCell id="release-note" parent="1" vertex="1" value="Appliances poll their release branch every two minutes. Activation is health-gated and rolls back on failure." style="rounded=1;arcSize=7;whiteSpace=wrap;html=1;fillColor=#10231E;strokeColor=#34D399;strokeWidth=1;dashed=1;fontColor=#B7F7DC;fontSize=10;align=center;verticalAlign=middle;fontFamily=Helvetica;">
+          <mxGeometry x="75" y="860" width="320" height="95" as="geometry" />
+        </mxCell>
+
+        <mxCell id="oidc" parent="1" vertex="1" value="&lt;b&gt;GitHub OIDC provider&lt;/b&gt;&lt;br&gt;repo + ref claims" style="rounded=1;arcSize=7;whiteSpace=wrap;html=1;fillColor=#142436;strokeColor=#3B82F6;strokeWidth=2;fontColor=#DCEEFF;fontSize=11;align=center;verticalAlign=middle;fontFamily=Helvetica;">
+          <mxGeometry x="505" y="190" width="275" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="deploy-roles" parent="1" vertex="1" value="&lt;div style=&quot;font-size:14px&quot;&gt;&lt;b&gt;Per-project deploy roles&lt;/b&gt;&lt;/div&gt;&lt;div style=&quot;margin-top:6px;color:#C8D5E1&quot;&gt;permission boundary + policy bundles&lt;br&gt;artifact buckets + deployment revision&lt;/div&gt;" style="rounded=1;arcSize=7;whiteSpace=wrap;html=1;fillColor=#142436;strokeColor=#3B82F6;strokeWidth=2;fontColor=#F1F7FB;fontSize=11;align=left;verticalAlign=top;spacingTop=10;spacingLeft=12;fontFamily=Helvetica;">
+          <mxGeometry x="825" y="180" width="275" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="terraform" parent="1" vertex="1" value="&lt;div style=&quot;font-size:14px&quot;&gt;&lt;b&gt;Consolidated Terraform state&lt;/b&gt;&lt;/div&gt;&lt;div style=&quot;margin-top:6px;color:#C8D5E1&quot;&gt;control • network • services&lt;br&gt;one ahara/infra.tfstate apply&lt;/div&gt;" style="rounded=1;arcSize=7;whiteSpace=wrap;html=1;fillColor=#142436;strokeColor=#60A5FA;strokeWidth=3;fontColor=#F1F7FB;fontSize=11;align=left;verticalAlign=top;spacingTop=10;spacingLeft=12;fontFamily=Helvetica;">
+          <mxGeometry x="505" y="315" width="595" height="88" as="geometry" />
+        </mxCell>
+        <mxCell id="cognito" parent="1" vertex="1" value="&lt;b&gt;Cognito application identity&lt;/b&gt;&lt;br&gt;human login • ALB sessions&lt;br&gt;M2M OAuth clients / JWT verification" style="rounded=1;arcSize=7;whiteSpace=wrap;html=1;fillColor=#211B32;strokeColor=#A78BFA;strokeWidth=2;fontColor=#E9E2FF;fontSize=11;align=center;verticalAlign=middle;fontFamily=Helvetica;">
+          <mxGeometry x="825" y="450" width="275" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="roles-anywhere" parent="1" vertex="1" value="&lt;div style=&quot;font-size:14px&quot;&gt;&lt;b&gt;IAM Roles Anywhere&lt;/b&gt;&lt;/div&gt;&lt;div style=&quot;margin-top:6px;color:#E3D7F4&quot;&gt;trust anchor: Ahara machine CA&lt;br&gt;90-day X.509 identities&lt;/div&gt;" style="rounded=1;arcSize=7;whiteSpace=wrap;html=1;fillColor=#281E32;strokeColor=#C084FC;strokeWidth=3;fontColor=#FAF5FF;fontSize=11;align=left;verticalAlign=top;spacingTop=10;spacingLeft=12;fontFamily=Helvetica;">
+          <mxGeometry x="505" y="450" width="275" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="entry-role" parent="1" vertex="1" value="&lt;b&gt;ahara-machines-entry&lt;/b&gt;&lt;br&gt;credential-exchange role only" style="rounded=1;arcSize=7;whiteSpace=wrap;html=1;fillColor=#241A2D;strokeColor=#A855F7;strokeWidth=2;fontColor=#F3E8FF;fontSize=11;align=center;verticalAlign=middle;fontFamily=Helvetica;">
+          <mxGeometry x="505" y="570" width="275" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="workload-roles" parent="1" vertex="1" value="&lt;b&gt;Workload-tagged machine roles&lt;/b&gt;&lt;br&gt;one role per declared workload&lt;br&gt;no shared static AWS keys" style="rounded=1;arcSize=7;whiteSpace=wrap;html=1;fillColor=#241A2D;strokeColor=#A855F7;strokeWidth=2;fontColor=#F3E8FF;fontSize=11;align=center;verticalAlign=middle;fontFamily=Helvetica;">
+          <mxGeometry x="505" y="665" width="275" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="aws-data" parent="1" vertex="1" value="&lt;div style=&quot;font-size:14px&quot;&gt;&lt;b&gt;Scoped AWS data services&lt;/b&gt;&lt;/div&gt;&lt;div style=&quot;margin-top:6px;color:#C8D5E1&quot;&gt;SSM + Secrets Manager&lt;br&gt;Route 53 DNS-01&lt;br&gt;S3 / KMS / DynamoDB&lt;/div&gt;" style="rounded=1;arcSize=7;whiteSpace=wrap;html=1;fillColor=#17202A;strokeColor=#64748B;strokeWidth=2;fontColor=#F1F5F9;fontSize=11;align=left;verticalAlign=top;spacingTop=10;spacingLeft=12;fontFamily=Helvetica;">
+          <mxGeometry x="505" y="780" width="275" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="cloudwatch" parent="1" vertex="1" value="&lt;div style=&quot;font-size:14px&quot;&gt;&lt;b&gt;AWS security + operations data&lt;/b&gt;&lt;/div&gt;&lt;div style=&quot;margin-top:6px;color:#C8D5E1&quot;&gt;CloudWatch logs / alarms&lt;br&gt;CloudTrail • Config • GuardDuty&lt;br&gt;ALB/WAF/S3 access logs&lt;/div&gt;" style="rounded=1;arcSize=7;whiteSpace=wrap;html=1;fillColor=#251F15;strokeColor=#FBBF24;strokeWidth=2;fontColor=#FFF5D6;fontSize=11;align=left;verticalAlign=top;spacingTop=10;spacingLeft=12;fontFamily=Helvetica;">
+          <mxGeometry x="825" y="720" width="275" height="125" as="geometry" />
+        </mxCell>
+        <mxCell id="aws-runtime" parent="1" vertex="1" value="&lt;b&gt;AWS runtime emitters&lt;/b&gt;&lt;br&gt;ALB • EC2 • Lambda • RDS" style="rounded=1;arcSize=7;whiteSpace=wrap;html=1;fillColor=#132A24;strokeColor=#34D399;strokeWidth=1;fontColor=#D9FFF0;fontSize=11;align=center;verticalAlign=middle;fontFamily=Helvetica;">
+          <mxGeometry x="505" y="920" width="595" height="55" as="geometry" />
+        </mxCell>
+
+        <mxCell id="trust" parent="1" vertex="1" value="&lt;div style=&quot;font-size:16px&quot;&gt;&lt;b&gt;Trust appliance .67.2&lt;/b&gt;&lt;/div&gt;&lt;div style=&quot;margin-top:8px;color:#E9D5FF&quot;&gt;&lt;b&gt;private CA key stays here&lt;/b&gt;&lt;br&gt;repo-owned workload allowlist&lt;br&gt;first enrollment + mTLS renewal :8443&lt;br&gt;public wildcard ACME issuer&lt;br&gt;optional management surface disabled&lt;/div&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#2B1D35;strokeColor=#C084FC;strokeWidth=4;fontColor=#FAF5FF;fontSize=11;align=left;verticalAlign=top;spacingTop=13;spacingLeft=14;fontFamily=Helvetica;">
+          <mxGeometry x="1220" y="190" width="330" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="gateway" parent="1" vertex="1" value="&lt;div style=&quot;font-size:14px&quot;&gt;&lt;b&gt;Gateway appliance&lt;/b&gt;&lt;/div&gt;&lt;div style=&quot;margin-top:6px;color:#FFE8D1&quot;&gt;WireGuard • firewall • DNS/DHCP&lt;br&gt;machine identity + wildcard cert&lt;br&gt;release-polling updater&lt;/div&gt;" style="rounded=1;arcSize=7;whiteSpace=wrap;html=1;fillColor=#2A1D13;strokeColor=#FB923C;strokeWidth=3;fontColor=#FFF7ED;fontSize=11;align=left;verticalAlign=top;spacingTop=10;spacingLeft=12;fontFamily=Helvetica;">
+          <mxGeometry x="1600" y="190" width="315" height="115" as="geometry" />
+        </mxCell>
+        <mxCell id="collector" parent="1" vertex="1" value="&lt;div style=&quot;font-size:14px&quot;&gt;&lt;b&gt;Collector appliance&lt;/b&gt;&lt;/div&gt;&lt;div style=&quot;margin-top:6px;color:#C8EAE6&quot;&gt;IoT-facing pollers + spools&lt;br&gt;machine identity + wildcard cert&lt;br&gt;&lt;b&gt;no AWS credential&lt;/b&gt;&lt;/div&gt;" style="rounded=1;arcSize=7;whiteSpace=wrap;html=1;fillColor=#12312F;strokeColor=#2DD4BF;strokeWidth=3;fontColor=#E6FFFC;fontSize=11;align=left;verticalAlign=top;spacingTop=10;spacingLeft=12;fontFamily=Helvetica;">
+          <mxGeometry x="1600" y="355" width="315" height="115" as="geometry" />
+        </mxCell>
+        <mxCell id="workloads" parent="1" vertex="1" value="&lt;div style=&quot;font-size:14px&quot;&gt;&lt;b&gt;Declared TrueNAS workloads&lt;/b&gt;&lt;/div&gt;&lt;div style=&quot;margin-top:6px;color:#D4F7DF&quot;&gt;House Sensors • observability&lt;br&gt;Airwave • Harbor • Sulion services&lt;br&gt;each enrolls as its own workload ID&lt;/div&gt;" style="rounded=1;arcSize=7;whiteSpace=wrap;html=1;fillColor=#133021;strokeColor=#22C55E;strokeWidth=3;fontColor=#EAFFF1;fontSize=11;align=left;verticalAlign=top;spacingTop=10;spacingLeft=12;fontFamily=Helvetica;">
+          <mxGeometry x="1220" y="440" width="330" height="125" as="geometry" />
+        </mxCell>
+        <mxCell id="local-roles" parent="1" vertex="1" value="&lt;b&gt;Credential exchange helper&lt;/b&gt;&lt;br&gt;X.509 → short-lived STS session&lt;br&gt;then assume exact workload role" style="rounded=1;arcSize=7;whiteSpace=wrap;html=1;fillColor=#241A2D;strokeColor=#A855F7;strokeWidth=2;fontColor=#F3E8FF;fontSize=11;align=center;verticalAlign=middle;fontFamily=Helvetica;">
+          <mxGeometry x="1600" y="520" width="315" height="95" as="geometry" />
+        </mxCell>
+        <mxCell id="observability" parent="1" vertex="1" value="&lt;div style=&quot;font-size:15px&quot;&gt;&lt;b&gt;TrueNAS observability stack&lt;/b&gt;&lt;/div&gt;&lt;div style=&quot;margin-top:7px;color:#D4F7DF&quot;&gt;Grafana • VictoriaMetrics • Loki&lt;br&gt;Tempo • InfluxDB&lt;br&gt;dashboards, alerts, metrics, traces, logs&lt;/div&gt;" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#132A24;strokeColor=#34D399;strokeWidth=3;fontColor=#EAFFF1;fontSize=11;align=left;verticalAlign=top;spacingTop=12;spacingLeft=14;fontFamily=Helvetica;">
+          <mxGeometry x="1220" y="675" width="330" height="135" as="geometry" />
+        </mxCell>
+        <mxCell id="local-emitters" parent="1" vertex="1" value="&lt;div style=&quot;font-size:14px&quot;&gt;&lt;b&gt;Local telemetry emitters&lt;/b&gt;&lt;/div&gt;&lt;div style=&quot;margin-top:6px;color:#C8D5E1&quot;&gt;gateway nftables / Suricata / node metrics&lt;br&gt;collector service + host metrics&lt;br&gt;TrueNAS applications and databases&lt;/div&gt;" style="rounded=1;arcSize=7;whiteSpace=wrap;html=1;fillColor=#14251F;strokeColor=#34D399;strokeWidth=2;fontColor=#EDFFF6;fontSize=11;align=left;verticalAlign=top;spacingTop=10;spacingLeft=12;fontFamily=Helvetica;">
+          <mxGeometry x="1600" y="675" width="315" height="135" as="geometry" />
+        </mxCell>
+        <mxCell id="proxy-gateway" parent="1" vertex="1" value="&lt;b&gt;AWS reverse proxy OTLP / Loki gateway&lt;/b&gt;&lt;br&gt;forwards AWS telemetry over WireGuard" style="rounded=1;arcSize=7;whiteSpace=wrap;html=1;fillColor=#142436;strokeColor=#38BDF8;strokeWidth=2;fontColor=#DCEEFF;fontSize=11;align=center;verticalAlign=middle;fontFamily=Helvetica;">
+          <mxGeometry x="1220" y="875" width="695" height="75" as="geometry" />
+        </mxCell>
+
+        <mxCell id="edge-github-actions" parent="1" edge="1" source="github" target="actions" value="workflow + source" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#38BDF8;strokeWidth=3;startArrow=none;endArrow=block;endFill=1;fontColor=#CFF4FF;fontSize=10;fontStyle=1;labelBackgroundColor=#0B1017;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-actions-oidc" parent="1" edge="1" source="actions" target="oidc" value="signed OIDC token" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#3B82F6;strokeWidth=3;startArrow=none;endArrow=block;endFill=1;fontColor=#BFDBFE;fontSize=10;fontStyle=1;labelBackgroundColor=#0B1017;">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="445" y="435" />
+              <mxPoint x="445" y="225" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-oidc-roles" parent="1" edge="1" source="oidc" target="deploy-roles" value="AssumeRoleWithWebIdentity" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#3B82F6;strokeWidth=3;startArrow=none;endArrow=block;endFill=1;fontColor=#BFDBFE;fontSize=10;fontStyle=1;labelBackgroundColor=#0B1017;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-roles-terraform" parent="1" edge="1" source="deploy-roles" target="terraform" value="bounded apply" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#3B82F6;strokeWidth=3;startArrow=none;endArrow=block;endFill=1;fontColor=#BFDBFE;fontSize=10;fontStyle=1;labelBackgroundColor=#0B1017;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-trust-gateway" parent="1" edge="1" source="trust" target="gateway" value="identity + TLS cert" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#C084FC;strokeWidth=3;startArrow=none;endArrow=block;endFill=1;fontColor=#E9D5FF;fontSize=10;fontStyle=1;labelBackgroundColor=#0B1017;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-trust-collector" parent="1" edge="1" source="trust" target="collector" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#C084FC;strokeWidth=3;startArrow=none;endArrow=block;endFill=1;fontColor=#E9D5FF;fontSize=10;fontStyle=1;labelBackgroundColor=#0B1017;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-trust-workloads" parent="1" edge="1" source="trust" target="workloads" value="workload identities" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#C084FC;strokeWidth=3;startArrow=none;endArrow=block;endFill=1;fontColor=#E9D5FF;fontSize=10;fontStyle=1;labelBackgroundColor=#0B1017;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-trust-helper" parent="1" edge="1" source="trust" target="local-roles" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#A855F7;strokeWidth=2;startArrow=none;endArrow=block;endFill=1;fontColor=#E9D5FF;fontSize=10;labelBackgroundColor=#0B1017;">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1575" y="390" />
+              <mxPoint x="1575" y="567" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-workloads-helper" parent="1" edge="1" source="workloads" target="local-roles" value="X.509 exchange" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#A855F7;strokeWidth=2;startArrow=none;endArrow=block;endFill=1;fontColor=#E9D5FF;fontSize=10;labelBackgroundColor=#0B1017;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-helper-rolesanywhere" parent="1" edge="1" source="local-roles" target="roles-anywhere" value="certificate chain" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#A855F7;strokeWidth=3;startArrow=none;endArrow=block;endFill=1;fontColor=#E9D5FF;fontSize=10;fontStyle=1;labelBackgroundColor=#0B1017;">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1160" y="567" />
+              <mxPoint x="1160" y="625" />
+              <mxPoint x="800" y="625" />
+              <mxPoint x="800" y="495" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-ra-entry" parent="1" edge="1" source="roles-anywhere" target="entry-role" value="CreateSession" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#A855F7;strokeWidth=3;startArrow=none;endArrow=block;endFill=1;fontColor=#E9D5FF;fontSize=10;fontStyle=1;labelBackgroundColor=#0B1017;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-entry-workload" parent="1" edge="1" source="entry-role" target="workload-roles" value="matching workload tag" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#A855F7;strokeWidth=3;startArrow=none;endArrow=block;endFill=1;fontColor=#E9D5FF;fontSize=10;fontStyle=1;labelBackgroundColor=#0B1017;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-workload-data" parent="1" edge="1" source="workload-roles" target="aws-data" value="scoped API calls" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#A855F7;strokeWidth=3;startArrow=none;endArrow=block;endFill=1;fontColor=#E9D5FF;fontSize=10;fontStyle=1;labelBackgroundColor=#0B1017;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-runtime-cloudwatch" parent="1" edge="1" source="aws-runtime" target="cloudwatch" value="logs, alarms, security findings" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#FBBF24;strokeWidth=3;startArrow=none;endArrow=block;endFill=1;fontColor=#FDE68A;fontSize=10;fontStyle=1;labelBackgroundColor=#0B1017;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-runtime-proxy" parent="1" edge="1" source="aws-runtime" target="proxy-gateway" value="OTLP + EC2 Alloy / Loki" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#38BDF8;strokeWidth=3;startArrow=none;endArrow=block;endFill=1;fontColor=#CFF4FF;fontSize=10;fontStyle=1;labelBackgroundColor=#0B1017;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-proxy-observability" parent="1" edge="1" source="proxy-gateway" target="observability" value="WireGuard → local ingest ports" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#38BDF8;strokeWidth=3;startArrow=none;endArrow=block;endFill=1;fontColor=#CFF4FF;fontSize=10;fontStyle=1;labelBackgroundColor=#0B1017;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-local-obs" parent="1" edge="1" source="local-emitters" target="observability" value="scrape + push" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#34D399;strokeWidth=4;startArrow=block;startFill=1;endArrow=block;endFill=1;fontColor=#B7F7DC;fontSize=10;fontStyle=1;labelBackgroundColor=#0B1017;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend" parent="1" vertex="1" value="&lt;font color=&quot;#3B82F6&quot;&gt;━━&lt;/font&gt; deploy authority&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&lt;font color=&quot;#C084FC&quot;&gt;━━&lt;/font&gt; machine identity / STS exchange&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&lt;font color=&quot;#34D399&quot;&gt;━━&lt;/font&gt; local telemetry&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&lt;font color=&quot;#38BDF8&quot;&gt;━━&lt;/font&gt; application / AWS telemetry&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&lt;font color=&quot;#94A3B8&quot;&gt;┄┄&lt;/font&gt; polling or dependency" style="rounded=1;arcSize=7;whiteSpace=wrap;html=1;fillColor=#101821;strokeColor=#334155;strokeWidth=1;fontColor=#CBD5E1;fontSize=11;align=center;verticalAlign=middle;fontFamily=Helvetica;">
+          <mxGeometry x="40" y="1050" width="1920" height="42" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

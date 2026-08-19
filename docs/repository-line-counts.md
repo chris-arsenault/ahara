@@ -14,10 +14,10 @@ Run `python3 scripts/rebuild-repository-line-counts.py` from the `ahara` reposit
 
 | Category | Nonblank LoC |
 | --- | ---: |
-| Source, configuration, and tracked data | 2,769,056 |
+| Source, configuration, and tracked data | 2,769,062 |
 | Tests | 578,292 |
-| Markdown documentation | 276,027 |
-| **All included text** | **3,623,375** |
+| Markdown documentation | 275,986 |
+| **All included text** | **3,623,340** |
 
 ## Method
 
@@ -36,7 +36,7 @@ The source, test, and Markdown columns are mutually exclusive. The test classifi
 | --- | ---: | ---: | ---: |
 | ableton-extensions | TypeScript 1,305, JSON 192, JavaScript 27, YAML 25 | TypeScript 876 | 425 |
 | agents-of-glass | Python 34,435, TypeScript 5,096, CSS 3,137, Rust 2,315, SQL 698, Shell 290, Terraform 280, TOML 222, JavaScript 112, JSON 68, YAML 25, HTML 19, Make 16 | Python 9,094 | 7,836 |
-| ahara | YAML 1,296, Python 1,183, Shell 68, TOML 48 | Python 211 | 2,581 |
+| ahara | YAML 1,296, Python 1,183, Shell 68, TOML 48, SVG 6 | Python 211 | 2,540 |
 | ahara-access | Rust 1,590, Terraform 151, SQL 132, TOML 61, YAML 25, Shell 21, Make 19 | — | 111 |
 | ahara-business | Rust 17,501, TypeScript 8,260, CSS 1,730, Terraform 747, SQL 556, JavaScript 148, TOML 142, JSON 105, Shell 63, SVG 44, YAML 32, HTML 27, Make 23 | Rust 3,036, TypeScript 2,512, JSON 78 | 1,045 |
 | ahara-collector | Rust 5,070, Nix 1,842, Shell 201, JSON 54, YAML 33, TOML 19, Make 12 | Nix 602 | 1,115 |
@@ -100,7 +100,7 @@ Markdown is omitted here because it is reported separately.
 | CSS | 89,514 | 0 | 89,514 |
 | JavaScript | 60,006 | 1,465 | 61,471 |
 | HTML | 43,888 | 0 | 43,888 |
-| SVG | 43,577 | 0 | 43,577 |
+| SVG | 43,583 | 0 | 43,583 |
 | Terraform | 23,470 | 0 | 23,470 |
 | SQL | 13,429 | 2,956 | 16,385 |
 | YAML | 16,168 | 0 | 16,168 |
@@ -116,7 +116,7 @@ Markdown is omitted here because it is reported separately.
 | Config | 181 | 0 | 181 |
 | INI | 32 | 0 | 32 |
 | Properties | 28 | 0 | 28 |
-| **Total** | **2,769,056** | **578,292** | **3,347,348** |
+| **Total** | **2,769,062** | **578,292** | **3,347,354** |
 
 ## Markdown documentation by repository
 
@@ -143,8 +143,8 @@ Repositories with no Markdown are omitted from this table but remain present in 
 | hot-mic | 3,200 | 38 |
 | sigillum-ml | 2,969 | 35 |
 | nas-csi | 2,880 | 56 |
-| ahara | 2,581 | 21 |
 | catalyst-castellum | 2,561 | 39 |
+| ahara | 2,540 | 21 |
 | bookmarker | 2,285 | 32 |
 | ahara-standards | 1,966 | 43 |
 | legato | 1,821 | 17 |
@@ -172,4 +172,4 @@ Repositories with no Markdown are omitted from this table but remain present in 
 | nas-text-embeddings-inference | 74 | 3 |
 | nas-falkordb | 61 | 3 |
 | kontakt-shell | 4 | 2 |
-| **Total** | **276,027** | **3,187** |
+| **Total** | **275,986** | **3,187** |

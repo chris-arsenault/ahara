@@ -1,111 +1,74 @@
 # Platform Architecture
 
-Ahara spans an AWS control and service plane plus routed household networks. The diagram emphasizes the paths that cross trust boundaries: public ingress, the WireGuard link, local inter-zone flows, IoT collection, and certificate-backed machine identity.
+Ahara spans an AWS control and service plane plus routed household networks. The two views below separate runtime traffic from deployment, machine identity, and observability so the network path remains readable.
 
-## Cloud and local topology
+## Network and traffic topology
 
-```mermaid
-flowchart LR
-    users((Internet users))
-    github["GitHub<br/>Actions and release refs"]
+The network view includes the public edge, both VPC subnet tiers, the ALB and WireGuard NLB, the EC2 NAT instance, the diagnostic bastion, private compute and data services, and the routed household zones.
 
-    subgraph aws["AWS us-east-1"]
-        direction TB
-        edge["Route53 + ACM + WAF<br/>public ALB"]
-        cognito["Cognito<br/>human and M2M authentication"]
-        services["Private VPC services<br/>reverse proxy · Rust Lambdas · RDS<br/>10.42.20.0/23"]
-        wireguard["WireGuard endpoint<br/>UDP NLB → EC2 pinned ENI<br/>10.200.0.1"]
-        deploy["GitHub OIDC<br/>per-project deploy roles"]
-        roles["Roles Anywhere + STS<br/>workload-tagged IAM roles"]
-        awsdata["SSM Parameter Store<br/>Route53 · S3/KMS · CloudWatch"]
+![Ahara network and traffic topology](diagrams/platform-network.svg)
 
-        cognito -. authenticates .-> edge
-        edge --> services
-        services -->|"route to 192.168.66.0/24"| wireguard
-        deploy --> edge
-        deploy --> services
-        deploy --> roles
-        roles -->|"scoped, short-lived sessions"| awsdata
-    end
+[Open the full-size network diagram](diagrams/platform-network.svg) · [Edit the Draw.io source](diagrams/platform-network.drawio)
 
-    subgraph local["Household and local infrastructure"]
-        direction TB
-        unifi["UniFi router<br/>internet NAT · VLANs · static routes"]
-        home["Home LAN<br/>192.168.65.0/24"]
-        iot["IoT LAN<br/>192.168.30.0/24"]
-        devices["WiiM players<br/>AtomS3U sensors · Kasa plugs"]
-        collector["Collector · 192.168.30.2<br/>on-link discovery and control<br/>bounded reading spools"]
-        transit["Uplink transit<br/>192.168.60.0/24"]
-        gateway["VP2440 gateway · 192.168.60.2<br/>NixOS · DNS/DHCP · nftables + Suricata<br/>routed, default-drop, no NAT"]
-        servers["Server LAN<br/>192.168.66.0/24 · gateway .1"]
-        truenas["TrueNAS · 192.168.66.3<br/>Airwave · House Sensors · app containers"]
-        observe["Local observability<br/>Grafana · VictoriaMetrics · Loki<br/>Tempo · InfluxDB"]
-        trustnet["Trust LAN<br/>192.168.67.0/24 · gateway .1"]
-        trust["Trust appliance · 192.168.67.2<br/>private CA · machine enrollment<br/>public wildcard ACME certificate"]
+### Primary traffic paths
 
-        unifi --- home
-        unifi --- iot
-        iot --- devices
-        iot --- collector
-        unifi --- transit
-        transit --- gateway
-        gateway --- servers
-        servers --- truenas
-        truenas --- observe
-        gateway --- trustnet
-        trustnet --- trust
+| Path | Route |
+| --- | --- |
+| Public applications | Internet client → Route 53/ACM → WAF → public ALB → project Lambda target or private reverse-proxy EC2. TrueNAS-backed routes continue through the WireGuard EC2 endpoint, the tunnel, and the VP2440 to `192.168.66.3`. |
+| Site tunnel | `wg.ahara.io` → public UDP NLB in both public subnets → WireGuard EC2 with a pinned private ENI → VP2440 peer `10.200.0.2`. The tunnel carries declared AWS and server-LAN routes, not default internet traffic. |
+| Private AWS egress | The shared private route table sends `0.0.0.0/0` to the NAT instance ENI, then its EIP and the Internet Gateway. The current NAT forwarding rule admits `10.42.20.0/24`; the route table is also associated with `10.42.21.0/24`. |
+| AWS diagnostics | The bastion sits in private subnet B with the Lambda security group. Operators start an SSM Session Manager session; it has no public address or SSH ingress and stops after 60 minutes. |
+| Local routed traffic | UniFi owns WAN NAT, Home/IoT VLANs, and static routes. Traffic for the server and trust networks crosses the uplink transit VLAN to the VP2440, which applies named, default-drop nftables flows without NAT. |
+| IoT collection | The collector and devices share `192.168.30.0/24`, so SSDP, environment-sensor discovery, and Kasa polling stay on-link. TrueNAS reaches the collector through the VP2440 to pull readings and drive Airwave's constrained device transport. |
 
-        devices <-->|"on-link SSDP · HTTP · KLAP"| collector
-        truenas -->|"HTTPS 8443<br/>Airwave control + sensor drain"| collector
-        devices -->|"Airwave media · TCP 7882"| truenas
-        gateway -->|"machine identity<br/>HTTPS 8443"| trust
-        collector -->|"machine identity + public TLS cert<br/>HTTPS 8443"| trust
-        truenas -->|"workload identity enrollment<br/>HTTPS 8443"| trust
-        observe -->|"metrics scrape"| gateway
-        observe -->|"metrics scrape"| collector
-        gateway -->|"logs"| observe
-    end
+## Identity, delivery, and observability
 
-    users --> edge
-    users --> unifi
-    github -->|OIDC| deploy
-    wireguard <-->|"WireGuard · UDP 51820<br/>10.200.0.1 ↔ 10.200.0.2"| gateway
-    trust -->|"X.509 exchange over public AWS APIs<br/>DNS-01; not the tunnel"| roles
-    truenas -->|"declared workload X.509 exchange<br/>public AWS APIs"| roles
-    gateway -.->|"polls release"| github
-    collector -.->|"polls release"| github
-    trust -.->|"polls release"| github
+This view separates application authentication from machine identity. Cognito authenticates people and M2M clients. The trust appliance issues local machine identities; IAM Roles Anywhere exchanges an allowed X.509 identity for short-lived, workload-specific AWS authority.
 
-    classDef cloud fill:#e8f1ff,stroke:#2563eb,color:#0f172a
-    classDef localNode fill:#ecfdf5,stroke:#059669,color:#0f172a
-    classDef gatewayNode fill:#fff7ed,stroke:#ea580c,color:#0f172a
-    classDef trustNode fill:#f5f3ff,stroke:#7c3aed,color:#0f172a
-    classDef collectorNode fill:#ecfeff,stroke:#0891b2,color:#0f172a
+![Ahara identity, delivery, and observability topology](diagrams/platform-control.svg)
 
-    class edge,cognito,services,wireguard,deploy,roles,awsdata cloud
-    class unifi,home,iot,devices,transit,servers,truenas,observe,trustnet localNode
-    class gateway gatewayNode
-    class trust trustNode
-    class collector collectorNode
-```
+[Open the full-size control diagram](diagrams/platform-control.svg) · [Edit the Draw.io source](diagrams/platform-control.drawio)
+
+### Authority and operations paths
+
+| Path | Route |
+| --- | --- |
+| AWS deployment | GitHub Actions presents repository and ref claims to the GitHub OIDC provider, assumes the matching per-project deploy role, and applies the bounded Terraform scope. The `ahara-infra` control, network, and services layers share `ahara/infra.tfstate`; the AWS WireGuard endpoint remains owned by `ahara-vpn`. |
+| Appliance delivery | CI advances each appliance's `release` ref. Gateway, trust, and collector poll every two minutes, build locally, activate only after health checks, and roll back a failed generation. |
+| Local machine identity | The trust appliance keeps the private CA key on `192.168.67.2`. It enrolls only workload IDs declared in `ahara-trust`; renewal requires a valid client certificate and current policy. |
+| AWS machine authority | A declared local workload exchanges its certificate through IAM Roles Anywhere for the entry role, then assumes only a machine role tagged for that workload ID. The collector deliberately has no AWS credential. |
+| Certificates | The trust appliance uses its scoped machine role for Route 53 DNS-01 and acquires `*.local.ahara.io`. Only the gateway and collector receive that TLS keypair; other TrueNAS workloads receive their own machine identities. |
+| Observability | AWS security and service logs land in CloudWatch and the security-log bucket. OTLP-enabled Lambdas and EC2 Alloy agents use the private reverse proxy as the OTLP/Loki gateway, which forwards over WireGuard to Grafana, VictoriaMetrics, Loki, and Tempo on TrueNAS. Local gateway, collector, and workload telemetry lands in the same local stack. |
 
 ## Construct boundaries
 
 | Construct | Owns | Boundary |
 | --- | --- | --- |
-| AWS platform (`ahara-infra`) | VPC and routes, ALB/WAF/Route53, reverse proxy, Cognito, Lambdas, RDS, deployment IAM, Roles Anywhere, and shared AWS data services | Private VPC routes reach the household server subnet through the WireGuard ENI. Machine credentials come from workload-tagged roles, not shared static keys. |
-| WireGuard (`ahara-vpn`) | Public UDP NLB, EC2 tunnel endpoint and pinned ENI, tunnel identities, and the local gateway peer | The tunnel carries `10.200.0.0/24` and declared private VPC routes. It is not the household's default internet route. |
-| UniFi router | Internet NAT, the home, IoT, and uplink VLANs, and static routes for networks behind the VP2440 | Internet egress is NATed here. Inter-zone authorization remains on the VP2440 for traffic routed through it. |
-| VP2440 gateway (`ahara-vpn`) | Server and trust gateways, WireGuard, internal DNS, server DHCP, default-drop nftables policy, named flow counters, and Suricata inspection | It performs routed firewalling without NAT. Home and IoT traffic share the uplink interface but remain distinct source zones. |
-| Trust appliance (`ahara-trust`) | Private CA, workload allowlist, enrollment and renewal, shared publicly trusted certificate acquisition, and certificate distribution | The CA key remains on `192.168.67.2`; AWS receives only the public CA. Firewall reachability, the workload allowlist, and matching IAM role tags all have to agree. |
-| IoT collector (`ahara-collector`) | On-link device discovery, constrained WiiM transport, environment/Kasa polling, device credentials, scoped consumer tokens, and bounded per-module spools | It has no cloud credential and does not write upstream databases. TrueNAS pulls readings and owns the InfluxDB write. |
-| TrueNAS server plane | Airwave, House Sensors, application containers, Komodo deployments, data stores, and the local observability stack | Public traffic for routed TrueNAS applications arrives through the AWS reverse proxy and WireGuard. Declared workloads enroll separately and use their own scoped AWS roles. |
+| AWS platform (`ahara-infra`) | VPC, two public and two private subnets, route tables, Internet Gateway, EC2 NAT, public ALB, WAF/ACM/Route 53, private reverse proxy, diagnostic bastion, Cognito, VPC Lambdas, RDS, deployment IAM, Roles Anywhere, and shared AWS data services | Private VPC routes reach the household server subnet through the WireGuard ENI. The bastion reproduces the Lambda network position for SSM-only diagnostics. Machine credentials come from workload-tagged roles, not shared static keys. |
+| AWS WireGuard endpoint (`ahara-vpn`) | Public UDP NLB, WireGuard EC2 instance and pinned ENI, tunnel identities, peer configuration, and endpoint DNS | The NLB exposes UDP `51820`; the EC2 endpoint lives in the primary private subnet. The tunnel carries `10.200.0.0/24` and declared private routes. |
+| UniFi router | WAN edge and internet NAT, Home, IoT, and uplink VLANs, Wi-Fi, and static routes for networks behind the VP2440 | The household's default internet path stays here. It does not replace the VP2440's inter-zone policy. |
+| VP2440 gateway (`ahara-vpn`) | Server and trust gateways, WireGuard, internal DNS, server DHCP, default-drop nftables policy, flow counters, and Suricata inspection | It routes without NAT. Home and IoT traffic arrive on the uplink with original source addresses and may cross zones only through declared flows. |
+| Trust appliance (`ahara-trust`) | Private CA, workload allowlist, enrollment and renewal, wildcard ACME acquisition, and certificate distribution | The CA key remains on `192.168.67.2`. Firewall reachability, the workload allowlist, and matching IAM role tags must agree before an identity gains useful authority. |
+| IoT collector (`ahara-collector`) | On-link device discovery, constrained WiiM transport, environment/Kasa polling, device credentials, scoped consumer tokens, and bounded per-module spools | It has no cloud credential and does not write upstream databases. TrueNAS consumers pull readings and own the InfluxDB write and Airwave state. |
+| TrueNAS server plane | Airwave, House Sensors, application containers, Komodo deployments, data stores, and the local observability stack | Public traffic for routed TrueNAS applications arrives through the AWS reverse proxy and WireGuard. Each AWS-enabled workload enrolls separately and assumes its own scoped role. |
 
 ## Current feature gates
 
-- Trust certificate automation is enabled. The optional trust management console, terminal, and S3 secret-store backup are disabled in the current topology.
-- The gateway configuration API is disabled. Routing, DNS, DHCP, inspection, and WireGuard operate independently of that surface.
-- The collector serves its authenticated TLS API on `8443`; the plain `8850` path remains only for the House Sensors puller that has not moved to TLS.
+- Trust certificate automation is enabled. The optional trust management console, browser terminal, and S3 secret-store backup are disabled.
+- The gateway configuration API is disabled. Routing, DNS, DHCP, inspection, and WireGuard operate independently of it.
+- The collector serves its authenticated TLS API on `8443`; plain `8850` remains for the House Sensors puller that has not moved to TLS.
+
+## Maintaining the diagrams
+
+The `.drawio` files are the editable sources and the `.svg` files are checked-in renders. Rebuild both SVGs from the repository root with:
+
+```bash
+docker run --rm \
+  -v "$PWD/docs/diagrams:/input:ro" \
+  -v "$PWD/docs/diagrams:/output" \
+  rlespinasse/drawio-export:v4.52.0 \
+  -f svg -o /output --remove-page-suffix --embed-svg-fonts false /input
+```
 
 ## Sources of truth
 
@@ -117,3 +80,4 @@ flowchart LR
 | Trust topology and identity policy | `../ahara-trust/hosts/trust/topology.json`, `../ahara-trust/hosts/trust/site.nix` |
 | Collector topology and service boundary | `../ahara-collector/hosts/collector/topology.json`, `../ahara-collector/docs/architecture.md` |
 | Platform integration contracts | `INTEGRATION.md`, `TRUENAS-DEPLOY.md`, `OBSERVABILITY.md` |
+| Editable diagram sources | `docs/diagrams/platform-network.drawio`, `docs/diagrams/platform-control.drawio` |
