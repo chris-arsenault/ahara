@@ -36,6 +36,7 @@ Deploy: `cd ../ahara-infra && ./scripts/deploy.sh`
 - `CI-WORKFLOW.md` — shared reusable CI/CD workflow, platform.yml, governance, Qlty, and engineering reporting
 - `TRUENAS-DEPLOY.md` — TrueNAS deploy pattern (Docker, Komodo, secret-paths.yml)
 - `OBSERVABILITY.md` — telemetry stack, the Cognito M2M + Envoy JWT ingest-auth pattern, and how producers send authenticated metrics/logs/traces
+- `docs/` — durable reference documents, including the [platform architecture](docs/architecture.md) and [repository line-count snapshot](docs/repository-line-counts.md)
 - `.github/workflows/ci.yml` — shared reusable CI/CD workflow (called by all standard projects)
 - `.github/actions/` — `collect-engineering-report`, `report-build`, `governance-check`, `run-migrations`, `deploy-truenas`
 
