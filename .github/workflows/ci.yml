@@ -737,7 +737,12 @@ jobs:
 
       # ── Grafana dashboard deploy ───────────────────────────
 
+      # Dashboards are a view of a service, not the service. A Grafana that is
+      # down or restarting must not fail the deploy of the thing being
+      # observed: the run reports the failure and everything else still lands,
+      # and the next deploy re-applies the dashboards.
       - uses: chris-arsenault/ahara/.github/actions/deploy-grafana-dashboards@main
+        continue-on-error: true
         if: inputs.deploy && github.ref == 'refs/heads/main' && steps.config.outputs.has_grafana_dashboards == 'true'
         with:
           project: ${{ steps.config.outputs.project }}
