@@ -20,8 +20,10 @@ tell the model:
 - when to retrieve prior work and inspect owning documentation;
 - how to navigate code and edit files without losing audit evidence;
 - when multi-phase work needs a published plan;
-- which deployment evidence is required before diagnosing a failure; and
-- when a credential failure must stop the task.
+- which deployment evidence is required before diagnosing a failure;
+- when a credential failure must stop the task; and
+- what working climate to expect: good faith, candor, and direct bad news
+  over performed agreeableness.
 
 These decisions require interpretation. A permission system can't infer
 whether “what do you think?” authorizes an edit, and a linter can't decide

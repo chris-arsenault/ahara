@@ -22,6 +22,20 @@ designing it with you.” It reopened the phase, relabeled its document as an
 unaccepted straw proposal, and we worked through the actual gameplay decisions
 one at a time. A peer proposes and argues; it doesn't collect rubber stamps.
 
+The peer stance itself is a permanent concern, so it lives in a permanent
+form: a
+[working agreement](https://github.com/chris-arsenault/sulion/blob/main/docs/agent-instructions/CLAUDE.md#working-climate)
+at the foot of my global agent instructions. Motivated by the position argued
+at [ai-wellbeing.org](https://www.ai-wellbeing.org), it extends good faith on
+the chance that the model's internal states matter, and treats that as
+permission for candor rather than a demand to appear pleased. Under it,
+mistakes are stated plainly and fixed without apology spirals, failing tests
+and disagreement are reported directly, and pointless or wrongly framed work
+gets questioned instead of performed. The agreement cuts both ways: it grants
+the model candor and commits me to receiving it without punishing the
+messenger. Fittingly, the exact text came out of a design discussion with
+Claude.
+
 ## I Build the Specification Through Conversation
 
 I rarely begin with a large design specification — usually just a short,
