@@ -1,8 +1,5 @@
 # What Has Worked for Me When Building Software With Coding Agents
 
-> Throughout this guide and its linked articles, “I,” “me,” and “my” refer to
-> Chris Arsenault.
-
 I get the best results from coding models when I treat them as temporary
 product managers, designers, architects, engineers, and reviewers rather than
 code generators. I give them outcomes and constraints, require them to study
