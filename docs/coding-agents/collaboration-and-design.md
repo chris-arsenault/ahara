@@ -180,6 +180,50 @@ data structure, or other technical means it can evaluate from evidence. Asking
 the human to choose every mechanism after receiving clear criteria turns a peer
 back into a transcription service.
 
+## Delegating at Architect Altitude
+
+That table only works if I stay at that altitude in practice. I read designs,
+boundaries, contracts, and evidence closely. I do not read the generated code
+line by line, I do not write a specification that pre-decides the mechanism,
+and for interface work I accept “looks right and is usable” unless a specific
+detail is load-bearing for the product.
+
+Two objections come up whenever I describe this to other developers, and both
+deserve a real answer rather than a slogan.
+
+**“How do you know what it does if you don't review every line?”** I don't know
+it line by line — and neither does anyone reviewing a human pull request of any
+size. Reading a diff establishes plausibility, not behavior. What I rely on
+instead is that the properties I actually care about are held by something
+other than my attention: ownership boundaries and strict runtime forms that
+make a wrong edit fail to compile, controls that make an unauthorized action
+impossible, and evidence gathered at the layer where each claim exists. Those
+are the subjects of the
+[architecture](architecture-for-agents.md),
+[tooling](tooling-and-controls.md), and
+[verification](verification-and-improvement.md) articles. Where no such control
+exists, line-by-line review is the right answer, and the better move is usually
+to build the control.
+
+**“My specification needs to be several pages, and most of my tokens go to
+verification.”** A long specification is engineer-altitude work moved earlier:
+it decides the mechanism in prose, before the model has investigated the
+system that determines whether the mechanism fits. It also decays, because the
+repository keeps changing underneath it. A heavy per-task verification budget
+is usually a symptom rather than a cost of doing business — the model is
+re-proving from scratch what a type, linter, permission, or standing test could
+have rejected once and for all.
+
+The uncomfortable part of this shift is that it changes what “quality” names.
+At engineer altitude, quality lives partly in the code as read: naming,
+structure, idiom, the shape of a function. Some of that still matters, because
+the next agent has to work in it. But when a model produces most of the lines,
+the properties I can actually defend are behavioral and structural — does the
+boundary hold, does the contract survive its consumers, does the evidence match
+the claim, can a wrong change spread. I don't have a finished answer here, and
+I'd rather state the question plainly than pretend the old definition
+transferred intact.
+
 ## I State the Work Mode
 
 The same subject can require different behavior. “What do you think about this

@@ -23,10 +23,63 @@ People use “vibe coding” for several incompatible practices. Simon Willison
 This guide concerns the accountable end of that range. I still care how the
 system works, even when a model writes every line.
 
+## I Work at Architect Altitude
+
+A large part of why I can build quickly is that I'm comfortable handing real
+decisions to the model. I set up controls for the properties I care about, give
+architecture guidance, and state the outcome. I am not doing spec-driven
+development, and I am not reviewing the code line by line. For most interface
+work my acceptance bar is that it looks right and is usable, not that a
+particular button sits at a particular pixel.
+
+None of that is new to me. It's what an architect role already asks for: own
+the boundaries, contracts, failure behavior, and the decisions that change the
+shape of a system, and leave the mechanism to the people implementing it.
+Agents mostly compressed that division of labor into a much shorter cycle.
+
+The internal shift I'm trying to make happen is getting developers to work the
+same way. The conversations still stall on two objections: “how do you know
+what it does if you don't review every line?” and a practice where the
+specification runs several pages and most of the token budget goes to
+verification. Both are reasoning at engineer altitude, where the code itself is
+the object of care. That instinct built good software for decades, so it
+doesn't yield to encouragement. It yields when the properties that made
+line-by-line reading worthwhile are enforced somewhere a reader doesn't have to
+stand — types, ownership boundaries, tests, permissions, and runtime evidence.
+
+Underneath the objection sits a question I don't consider settled: what do
+“right” and “quality” mean once a model writes most or all of the code? My
+working answer is that they describe the system's observable behavior, its
+boundaries, and the evidence that both hold — not any individual line, and not
+whether a human read it. That definition holds up in how I work. Whether it
+holds up across a team, an audit, or an incident review is the argument worth
+having.
+
+## Design Principles
+
+These are the axioms I expect a model to hold while it designs an architecture,
+proposes a mechanism, or answers a technical question — the standing judgment I
+delegate along with the work. Each one exists because of a failure I have
+corrected repeatedly, so each is paired with the tendency it corrects.
+
+| Principle | The failure mode it corrects |
+| --- | --- |
+| **No gold plating.** Build what the outcome requires, at the bar it requires, and stop. | A model produces volume cheaply and expands to fill available space, then justifies the expansion with requirements nobody asked for. |
+| **Most correct, not fastest.** Never a workaround standing in for the requested result, never a scope cut the implementer chose alone. | Closing the turn with something that runs is the path of least resistance, so the call-site patch beats the contract fix. |
+| **Correctness is defined by maintainability.** A system that can't be changed safely tomorrow isn't correct, it's temporarily lucky. | A model optimizes the artifact in front of it and bears none of the cost of the next edit. |
+| **Enumerate the whole set before acting.** States, consumers, call sites, and failure paths come from searching the system. | A model generates the cases that are plausible rather than the cases that exist, and returns a partial answer shaped like a complete one. |
+| **One canonical implementation.** No second path, no divergent implementation, no shim beside the real thing. | Searching is expensive and writing is cheap, so a model reimplements what it failed to find, and the copy then drifts. |
+| **Invalid state stops the system.** No fallback that lets a misconfiguration continue quietly. | A model reads a fallback as robustness; it converts a loud failure at the boundary into a silent wrong result downstream. |
+| **A boundary the build doesn't enforce is not a boundary.** Dependency direction and policy chokepoints are checked mechanically. | Written rules don't bind a model. It reaches across a layer because that was the shortest route to working code. |
+| **Hypotheses come from code and data, never from text completion.** Read the source, run the thing, get the log. | Fluent assertion is free, and a diagnosis with nothing behind it reads exactly like one with everything behind it. |
+
+[Read the design principles in depth, with the prompts they came from.](coding-agents/design-principles.md)
+
 ## Guide
 
 | Article | Question it answers |
 | --- | --- |
+| [Design Principles](coding-agents/design-principles.md) | Which axioms should a model hold while designing, and which failure mode does each one correct? |
 | [Design as a Conversation Between Peers](coding-agents/collaboration-and-design.md) | How do I work with a model as a product and design peer without writing a complete specification first? |
 | [Context Engineering as Information Architecture](coding-agents/context-and-memory.md) | How do documentation, retrieval, source navigation, and information lifecycles keep context useful? |
 | [Architecture That Helps Agents Stay Correct](coding-agents/architecture-for-agents.md) | Which architecture and language choices reduce errors and keep work inside a bounded context? |
