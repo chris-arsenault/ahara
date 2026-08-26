@@ -10,11 +10,11 @@ The editorial agent reviewed my initiating prompts across product,
 infrastructure, simulation, and creative-tool repositories. It excluded status
 checks, corrections that applied only to the immediate conversation, and
 publication commands such as “commit and push.” The archive spans multiple
-agent tools and its older sessions are not indexed uniformly, so these are
+agent tools, and its older sessions are indexed unevenly, so these are
 recurring structures rather than a statistical ranking.
 
-These prompts are not incantations. Their value comes from specifying a work
-contract:
+None of the wording here is magic. The value of each prompt comes from
+specifying a work contract:
 
 | Prompt field | What it establishes |
 | --- | --- |
@@ -236,9 +236,9 @@ together. Explain any requirement you recommend changing. Do not edit until
 the reconciled design is approved.
 ```
 
-This is not a request to restore the first idea. New evidence may require a new
-design. The requirement is that the agent reconcile the whole problem instead
-of alternating between partial answers.
+New evidence may still overturn the earlier direction; the requirement is that
+the agent reconcile the whole problem instead of alternating between partial
+answers.
 
 ## Operate Until a Verifiable Terminal Condition
 
@@ -259,6 +259,5 @@ convergence evidence] and report any layer that remains unverified.
 
 Short prompts still have a role. “Continue,” “what remains,” and “commit and
 push” move an already-defined task through state or grant a specific external
-action. They are control messages, not substitutes for a material prompt. I
-keep them short because the repository, plan, and preceding decision record
-already hold the work contract.
+action. They can stay short because the repository, plan, and preceding
+decision record already hold the work contract.

@@ -4,8 +4,9 @@
 
 > Throughout this article, “I,” “me,” and “my” refer to Chris Arsenault.
 
-Generated code is cheap. Confidence is not. I ask the model to name the claim
-it is making and choose evidence that can actually support that claim.
+Code is now cheap to generate, but confidence still has to be earned the usual
+way. I ask the model to name the claim it's making and choose evidence that
+can actually support that claim.
 
 ## Match the Evidence to the Claim
 
@@ -20,10 +21,10 @@ Different checks observe different layers:
 | A service is reachable and useful | Runtime query and user-visible path |
 | A performance property holds | Trace, profile, benchmark, or production telemetry |
 
-Those checks are not interchangeable. A green local suite does not prove a
-deployment. A successful deployment does not prove that a service is reachable
-or that its data path works. When CI or runtime logs are unavailable, the cause
-of a failure remains unverified.
+The rows don't substitute for each other: a green local suite says nothing
+about the deploy, and a successful deploy says nothing about whether the
+service is reachable or its data path works. When CI or runtime logs are
+unavailable, the cause of a failure remains unverified.
 
 Verification should be proportionate. Every meaningful change needs evidence,
 but not every one-line edit deserves a permanent test. A permanent test earns
@@ -35,7 +36,7 @@ cannot be measured with current instrumentation, it should propose or add the
 smallest useful signal instead of asking me to invent fields I will never
 inspect.
 
-## Measure the Workflow, Not the Feeling
+## Measure the Workflow
 
 A 2025 randomized trial by Becker, Rush, Barnes, and Rein found that 16
 experienced open-source developers working on 246 tasks with early-2025 tools
@@ -43,22 +44,23 @@ took 19 percent longer with AI while estimating afterward that they had worked
 20 percent faster
 ([paper](https://arxiv.org/abs/2507.09089)).
 
-That result does not define my current workflow. It studied earlier models, a
-particular interface, developers with moderate AI experience, and a different
-operating method. It does show that perceived speed is a poor measurement tool.
-I look instead at cycle time, rework, escaped defects, operational outcomes,
-and the ambition of work completed. Faster typing was never the outcome.
+The study looked at earlier models, a particular interface, developers with
+moderate AI experience, and a different operating method, so I don't read it
+as a verdict on this workflow. What it does show is that perceived speed is a
+poor measurement tool. I look instead at cycle time, rework, escaped defects,
+operational outcomes, and the ambition of work completed. Faster typing was
+never the outcome.
 
-The same discipline applies inside a task. A plausible diagnosis is not a
-finding. A test added after the implementation and observed only while green
-does not prove it would catch the regression. A deploy that returned success
-does not prove the requested route serves traffic. The agent should report the
-evidence it actually obtained and the layer that remains unchecked.
+The same discipline applies inside a task: a plausible diagnosis isn't yet a
+finding, a test that has only ever been seen green proves little about the
+regression it supposedly catches, and a deploy that returned success says
+nothing about whether the requested route serves traffic. The agent should
+report the evidence it actually obtained and the layer that remains unchecked.
 
 ## Improve the Harness When a Failure Repeats
 
-Correcting one answer fixes one answer. Changing the environment that produced
-the error can fix a class of future answers.
+Correcting one answer fixes one answer; changing the environment that produced
+the error fixes a class of them.
 
 Depending on the failure, I may improve:
 
@@ -81,14 +83,15 @@ all emphasize the surrounding specifications, tools, observability, and
 verification rather than code generation alone.
 
 The harness should remain legible. An agent can generate complexity faster
-than a person can understand it. Cheap generation increases the value of clear
-boundaries and small dependency surfaces. A permanent control should cost less
-than the recurring failure it prevents.
+than a person can understand it, which raises the value of clear boundaries
+and small dependency surfaces. A permanent control should cost less than the
+recurring failure it prevents.
 
-Repository context cannot repair a model assigned the wrong job. A proposal
-task needs product and design criteria. A review needs findings and evidence,
-not silent repairs. A deployment task needs authority and runtime proof. The
-harness should make those modes easy to state and hard to confuse.
+Repository context also can't repair a model assigned the wrong job. A
+proposal task needs product and design criteria, a review needs findings and
+evidence rather than silent repairs, and a deployment task needs authority and
+runtime proof. The harness should make those modes easy to state and hard to
+confuse.
 
 ## Failure Patterns I Avoid
 
@@ -119,5 +122,5 @@ I avoid these patterns because I have seen them produce weak work:
   runtime performance evidence instead of asking one suite to prove all three.
 - [Sulion](https://github.com/chris-arsenault/sulion) combines transcript
   retrieval, structural navigation, plan state, brokered capabilities, and
-  repository checks so repeated failures can move into the harness layer that
-  owns them.
+  repository checks so repeated failures can move into the harness layer
+  responsible for them.

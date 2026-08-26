@@ -8,10 +8,10 @@ Architecture determines how much of a system an agent must understand at once,
 which errors its tools can reject, and how far a bad edit can spread. I treat
 architecture as part of the agent harness for that reason.
 
-These are not agent-only patterns. Clear ownership, narrow interfaces, pure
+None of this is agent-specific. Clear ownership, narrow interfaces, pure
 cores, strict inputs, and executable dependency rules have always helped human
-teams. Their value rises when code can arrive faster than a person can review
-it.
+teams; their value just rises when code arrives faster than a person can
+review it.
 
 ## Start With Ownership and Lifecycle
 
@@ -28,17 +28,17 @@ boxes:
 - What remains outside this subsystem?
 - What evidence would demonstrate that the boundary works?
 
-These questions prevent two common errors. A local patch may solve one node
-while leaving the subsystem incoherent. A broad rewrite may absorb
-responsibilities that already have a correct owner. The useful middle is a
-complete subsystem contract that says what remains, what adapts, and what
-disappears.
+These questions prevent two common errors: a local patch that fixes the
+component in front of you while leaving the subsystem incoherent, and a broad
+rewrite that absorbs responsibilities that already have a correct owner. The
+useful middle is a complete subsystem contract that says what remains, what
+adapts, and what disappears.
 
-Data flow and authority need the same precision. A credential denial is a hard
-boundary, not a debugging puzzle. An optional telemetry failure may degrade
-cleanly. A schema migration may require the storage owner even when another
-service produces the data. Architecture should state those differences before
-an agent encounters them during implementation.
+Data flow and authority need the same precision. A credential denial should
+stop the work, an optional telemetry failure may degrade cleanly, and a schema
+migration may require the storage owner even when another service produces the
+data. Architecture should state those differences before an agent encounters
+them during implementation.
 
 ### Reference points
 
@@ -57,10 +57,10 @@ an agent encounters them during implementation.
 
 ## Choose Languages for the Failures They Reject
 
-I do not choose a language primarily for programmer comfort or for the speed at
-which a model can emit it. The expensive question comes after generation:
-which mistakes become local compiler errors, which survive review, and which
-reach production?
+Programmer comfort and the speed at which a model can emit code are the wrong
+axes for language choice. The expensive question comes after generation: which
+mistakes become local compiler errors, which survive review, and which reach
+production?
 
 I often choose Rust for service and systems cores because ownership, borrowing,
 thread-safety bounds, exhaustive state handling, and typed errors become part
@@ -73,7 +73,7 @@ realtime path still needs preallocation, bounded work, and tests or profilers
 that observe allocation. The language removes some failure classes; the
 architecture and build own the rest.
 
-I do not force every system into Rust. C# with nullable analysis, warnings as
+Rust isn't the answer everywhere. C# with nullable analysis, warnings as
 errors, analyzers, and strict project references can protect a simulation
 kernel. Strict TypeScript plus runtime decoding can protect a browser
 application's internal model without pretending static types validate JSON.
@@ -81,29 +81,21 @@ Python can support research and trading work when deterministic decisions sit
 behind typed inputs and effect-free boundaries.
 
 The selection rule stays constant when the language changes: choose the
-language and build mode by the defects they can exclude in the target system,
-not by typing speed.
+language and build mode by the defects they can exclude in the target system.
 
 ### Reference points
 
-- [Sulion](https://github.com/chris-arsenault/sulion) uses Rust for terminal,
-  repository, retrieval, credential, and node-coordination processes.
-- [Lindelion](https://github.com/chris-arsenault/lindelion) uses Rust for audio,
-  host adaptation, and DSP; its
-  [allocation-free audio ADR](https://github.com/chris-arsenault/lindelion/blob/main/docs/adr/0001-allocation-free-audio-thread.md)
-  adds the realtime constraints that memory safety alone cannot supply.
-- [The Canonry Game](https://github.com/chris-arsenault/the-canonry-game),
-  [Catalyst Castellum](https://github.com/chris-arsenault/catalyst-castellum),
-  and [Harbor](https://github.com/chris-arsenault/harbor) apply the same
-  error-rejection rule through C#, TypeScript, and Python respectively.
+- [Lindelion's allocation-free audio ADR](https://github.com/chris-arsenault/lindelion/blob/main/docs/adr/0001-allocation-free-audio-thread.md)
+  marks the boundary of this rule: Rust removes the memory-safety failures,
+  and the ADR adds the realtime constraints the language alone cannot supply.
 
 ## Keep the Unit of Work Inside a Bounded Context
 
 Small composable modules let an agent load a contract, implementation, and
-tests without carrying an entire subsystem in context. A focused file can have
-one reason to change. A focused crate or package can expose a narrow dependency
-surface. A focused feature can be reviewed without reconstructing unrelated
-behavior.
+tests without carrying an entire subsystem in context. A focused file has one
+reason to change, a focused crate or package exposes a narrow dependency
+surface, and a focused feature can be reviewed without reconstructing
+unrelated behavior.
 
 David Parnas's classic
 [paper on modular decomposition](https://doi.org/10.1145/361598.361623) argues
@@ -126,12 +118,9 @@ to explain the subsystem.
 ### Reference points
 
 - [Catalyst Castellum](https://github.com/chris-arsenault/catalyst-castellum)
-  and [Scuba Sense](https://github.com/scuba-sense-inc/scuba-sense) reject
-  TypeScript files above 400 logical lines and functions above 75.
-- [Lindelion](https://github.com/chris-arsenault/lindelion) and
-  [Sulion](https://github.com/chris-arsenault/sulion) apply separate Rust file,
-  function, complexity, and implementation-block checks rather than one vague
-  “keep it small” instruction.
+  rejects TypeScript files above 400 logical lines and functions above 75;
+  Sulion applies equivalent Rust file, function, and complexity checks in
+  place of one vague “keep it small” instruction.
 
 ## Keep Decisions in a Pure Core and Effects at the Edge
 
@@ -147,20 +136,15 @@ silently acquire network, timing, persistence, or thread consequences. Tests
 then fill with imitations of the outside world.
 
 Pure cores also support multiple execution modes without duplicating the rule.
-A backtest, paper simulation, and live process can adapt different external
-facts into one strategy. A browser and a headless test can call the same timing
-or graph transition. Host packaging can vary without forking the DSP behavior.
+A backtest, a paper simulation, and a live process can feed different external
+facts into one strategy core, and a browser and a headless test can drive the
+same timing logic while host packaging varies freely around them.
 
 ### Reference points
 
 - [Harbor ADR 0003](https://github.com/chris-arsenault/harbor/blob/main/docs/adr/0003-pure-closed-candle-strategy-core.md)
   keeps network, database, clock, broker, and UI effects outside its strategy
-  decision.
-- [Tsonu Music](https://github.com/chris-arsenault/tsonu-music) keeps timing and
-  graph decisions in plain-data modules that can run without browser audio or
-  graphics hosts.
-- [Lindelion](https://github.com/chris-arsenault/lindelion) keeps effect crates
-  host-neutral and treats VST3 and standalone packaging as adapters.
+  decision, which lets backtest, paper, and live modes share one core.
 
 ## Compile Flexible Inputs Into a Strict Runtime Form
 
@@ -186,14 +170,9 @@ bounds, or identity resolution.
 
 ### Reference points
 
-- [The Canonry Game](https://github.com/chris-arsenault/the-canonry-game)
-  compiles names and gameplay concepts into stable identifiers and fixed-form
-  kernel data before simulation.
 - [Catalyst Castellum](https://github.com/chris-arsenault/catalyst-castellum)
-  compiles authored content into an immutable definition and separately decodes
-  and validates saved runtime state.
-- [Tsonu Music](https://github.com/chris-arsenault/tsonu-music) routes generated
-  and authored scenes through one typed graph compiler.
+  shows both halves: it compiles authored content into an immutable definition
+  and separately decodes and validates saved runtime state.
 
 ## Use a Small Kernel Only When Variation Is Real
 
@@ -208,10 +187,10 @@ needs the kernel contract and that extension, not every implementation in the
 catalog. A kernel edit is visibly cross-cutting and therefore triggers a wider
 survey.
 
-Plugin architecture is not a default. If the system has one consumer and no
+Plugin architecture has to be earned. If the system has one consumer and no
 identified axis of variation, the framework adds indirection, lifecycle state,
-and compatibility work before it has a job. Small composable modules are a
-default. A generalized extension surface must be earned by real variants.
+and compatibility work before it has a job. Small composable modules are the
+default; a generalized extension surface waits for real variants.
 
 ### Reference points
 
@@ -237,8 +216,6 @@ fork of the invariant.
 
 ### Reference points
 
-- [Harbor](https://github.com/chris-arsenault/harbor) sends backtest, paper, and
-  broker-facing decisions through the same strategy core.
 - [Agents of Glass](https://github.com/chris-arsenault/agents-of-glass) makes
   its `glass` CLI the live state interface for agents, so prompts do not create
   alternate mutation routes.
@@ -250,10 +227,8 @@ fork of the invariant.
 
 Code written by models arrives faster than human convention can correct it.
 The repository needs strict defaults that make the intended shape obvious and
-reject violations close to the edit. OpenAI's
-[Harness Engineering](https://openai.com/index/harness-engineering/) describes
-fixed dependency directions, custom linters, structural tests, and remediation
-text in failures as core parts of an agent-first repository.
+reject violations close to the edit: fixed dependency directions, custom
+linters, structural tests, and remediation text in the failures themselves.
 
 I assign each property to the strongest mechanism that can observe it:
 
@@ -265,11 +240,10 @@ I assign each property to the strongest mechanism that can observe it:
 | A runtime contract must hold | Focused unit or integration test |
 | A deployed behavior is claimed | Deployment and runtime evidence |
 
-A failure should provide just-in-time help, not only rejection. It should state
-what failed, why the rule exists, which path is allowed, and how to record a
-legitimate exception. The severity should match the property. Bypassing a
-security or dependency boundary is an error. A maintainability signal may begin
-as a warning.
+A failure should teach as well as reject: state what failed, why the rule
+exists, which path is allowed, and how to record a legitimate exception. The
+severity should match the property — bypassing a security or dependency
+boundary is an error, while a maintainability signal may begin as a warning.
 
 ### An Allocation Boundary as Architectural Proof
 
@@ -290,7 +264,7 @@ that listed routes are absent. A call-graph-aware analyzer can prove more. A
 profiler can observe one runtime path. None should be described as proving the
 others.
 
-### Tests Should Protect Behavior, Not Yesterday's Syntax
+### Tests Should Protect Behavior
 
 Tests drift when they mirror an implementation, authored content, or the text
 of a completed migration. An agent can then update test and implementation

@@ -22,8 +22,8 @@ computation.
 
 A repository is a symbolic workspace. File names, directory boundaries,
 indexes, stable identifiers, and visible state change what both people and
-models can perceive and decide. Documentation is part of the working system,
-not explanatory material added after the real work.
+models can perceive and decide. Documentation is part of that working system
+itself, rather than explanatory material bolted on after the real work.
 
 ## Give Every Kind of Information One Job
 
@@ -59,7 +59,7 @@ a related recommendation in
 find the smallest set of high-signal tokens and retrieve additional context
 just in time.
 
-## More Context Is Not Automatically Better
+## Bound the Working Set
 
 The
 [Lost in the Middle](https://aclanthology.org/2024.tacl-1.9/) experiments showed
@@ -72,15 +72,15 @@ Human cognitive load theory supplies a related warning through a different
 mechanism. John Sweller's
 [work on problem solving and learning](https://www.sciencedirect.com/science/article/pii/0364021388900237)
 showed that demanding means-ends search can consume capacity that would
-otherwise support learning. Human working memory and model context windows are
-not equivalent. The narrower parallel is enough: irrelevant search and poor
+otherwise support learning. Working memory and context windows differ in
+mechanism, but the narrower parallel holds: irrelevant search and poor
 representations consume resources that could be used to understand the task.
 
 This is why architecture, documentation, and search tools should bound the
 working set before the prompt tries to describe it. The repository can expose a
 small coherent subsystem. A documentation index can send the model to the
-owning source. A structural search can find a definition and its consumers
-without loading every file that contains the same word.
+source responsible for the answer. A structural search can find a definition
+and its consumers without loading every file that contains the same word.
 
 ## Let Agents Search Their Own History
 
@@ -91,10 +91,10 @@ sessions. Without that access, each new conversation begins by asking the human
 to rebuild context, scanning unrelated files, or guessing from the current
 implementation.
 
-Compaction and history search solve different problems. Compaction lets one
-conversation continue. Search lets a new conversation recover a decision made
-months earlier, or discover that a similar failure already produced a durable
-rule.
+Compaction and history search solve different problems: compaction lets one
+conversation continue, while search lets a new conversation recover a decision
+made months earlier or discover that a similar failure already produced a
+standing rule.
 
 I want history search to provide:
 
@@ -144,11 +144,11 @@ should be narrow enough that the agent can tell what a result proves.
   [documentation principles](../../skills/repo-docs/references/principles.md)
   define progressive disclosure and assign distinct jobs to current-state
   documentation, ADRs, plans, and changelogs.
-- [Sulion](https://github.com/chris-arsenault/sulion) is my reference
-  implementation. `sulion-retrieve` combines lexical and semantic transcript
-  search, returns source turns, scopes to the current repository by default,
-  and reports indexing state. `sulion-code` provides bounded structural source
-  navigation with confidence and fallback labels.
-- [Sulion's agent instructions](https://github.com/chris-arsenault/sulion/tree/main/docs/agent-instructions)
+- Sulion's [`sulion-retrieve`](https://github.com/chris-arsenault/sulion)
+  combines lexical and semantic transcript search, returns source turns,
+  scopes to the current repository by default, and reports indexing state.
+  `sulion-code` provides bounded structural source navigation with confidence
+  and fallback labels. Its
+  [agent instructions](https://github.com/chris-arsenault/sulion/tree/main/docs/agent-instructions)
   make both tools discoverable without embedding their operating manuals in
   each task prompt.

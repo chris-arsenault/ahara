@@ -23,10 +23,10 @@ tell the model:
 - which deployment evidence is required before diagnosing a failure; and
 - when a credential failure must stop the task.
 
-These decisions require interpretation. No permission system can infer whether
-“what do you think?” authorizes an edit. No linter can decide whether a product
-choice should return to me. Instructions give the model the policy and the
-reasons behind it.
+These decisions require interpretation. A permission system can't infer
+whether “what do you think?” authorizes an edit, and a linter can't decide
+when a product choice should come back to me. Instructions give the model the
+policy and the reasons behind it.
 
 I keep those rules in version control and install them into each agent's
 expected location. The maintained and installed copies are compared
@@ -34,43 +34,42 @@ mechanically. A source-to-install check is stronger than two files that are
 “kept in sync” by convention, and it keeps an agent's live behavior connected
 to reviewable repository history.
 
-Instructions also make unfamiliar tools discoverable. A model will not infer
-the name of a local transcript search, structural code index, credential
-broker, or plan publisher. The global file names the tool, when to reach for it,
-and the boundary around its use. The full manual stays in the tool's owning
-documentation.
+Instructions also make unfamiliar tools discoverable. A model won't guess the
+name of a local transcript search, structural code index, credential broker,
+or plan publisher on its own. The global file names the tool, when to reach
+for it, and the boundary around its use, while the full manual stays with the
+tool's own documentation.
 
-Instructions are not an enforcement boundary. A restriction that must hold
-also belongs in permissions, hooks, types, schemas, build rules, or runtime
-authorization. Anthropic's
+Instructions alone can't enforce anything, though. A restriction that must
+hold also belongs in permissions, hooks, types, schemas, build rules, or
+runtime authorization. Anthropic's
 [Trustworthy Agents in Practice](https://www.anthropic.com/research/trustworthy-agents)
 similarly treats the model, harness, tools, and environment as distinct parts
 of the safety system.
 
 ### Reference points
 
-- [Sulion](https://github.com/chris-arsenault/sulion) is my reference
-  implementation. Its
+- Sulion's
   [tracked agent instructions](https://github.com/chris-arsenault/sulion/tree/main/docs/agent-instructions)
   are installed into the live Claude and Codex locations and checked for
   drift.
 - The same instructions make `sulion-retrieve`, `sulion-code`, `with-cred`, and
   `sulion plan` available by name while leaving their detailed contracts with
-  the owning tool.
+  each tool's own documentation.
 
-## Secure Agents With Capabilities, Not Promises
+## Secure Agents With Narrow Capabilities
 
 A secure agent environment should grant narrow capabilities instead of placing
 powerful credentials in an ambient shell and asking the model to be careful.
 Secret access should be explicit, time-bounded, attributable, and limited to
-the child process that needs it. Ambiguous secret merges should fail. A denial
-should be machine-readable without revealing the value.
+the child process that needs it. When two grants would collide on the same
+variable name, the broker should fail the request rather than silently pick
+one, and a denial should be machine-readable without revealing the value.
 
-The mechanism and the instruction perform different work. The broker prevents
-use without an active grant. The instruction tells the model not to respond to
-a denial by searching files, token caches, another secret ID, or a broader
-cloud role. Access control blocks the intended path; policy keeps a capable
-operator from treating the boundary as an obstacle to route around.
+The mechanism and the instruction do different work here: the broker prevents
+use without an active grant, while the instruction tells the model that a
+denial means stop — without going on to search files, token caches, another
+secret ID, or a broader cloud role.
 
 The same principle applies to remote execution. Prefer typed requests over a
 generic remote shell, and allowlisted container operations over unrestricted
@@ -120,15 +119,14 @@ to reconstruct state after each interruption.
 
 A plan publisher should expose compact phase state without exposing the
 agent's private reasoning or requiring someone to read an entire transcript.
-Phase status changes when reality changes. It does not move from pending to
-complete in a ceremonial batch after the work is already over.
+Phase status changes when reality changes, not in a ceremonial batch after the
+work is already over.
 
 Plans also let work stop cleanly. Masicampo and Baumeister's
-[plan-making experiments](https://pubmed.ncbi.nlm.nih.gov/21688924/) do not
-prove that a software plan improves an agent, but they support the human
-mechanism: a specific, credible next action can release attention from an
-unfinished goal. The model benefits because a later context can reload the
-recorded state instead of reconstructing it from compressed conversation.
+[plan-making experiments](https://pubmed.ncbi.nlm.nih.gov/21688924/) found
+that a specific, credible next action can release attention from an unfinished
+goal. The model benefits too: a later context can reload the recorded state
+instead of reconstructing it from compressed conversation.
 
 Just-in-time phase expansion protects the plan from drift. The milestone says
 what the phase must accomplish and how it exits. Current code, cited ADRs, and
@@ -136,10 +134,9 @@ the approved design still determine exact behavior when implementation begins.
 
 ### Reference points
 
-- [Sulion](https://github.com/chris-arsenault/sulion) is my reference
-  implementation for plan publication. It exposes phase names, status, notes,
-  and history while the detailed execution plan remains with the working
-  agent.
+- [Sulion's plan publisher](https://github.com/chris-arsenault/sulion)
+  exposes phase names, status, notes, and history while the detailed execution
+  plan remains with the working agent.
 - Ahara's [plan-phase prompt](../../skills/plan-phase/EXECUTE-PHASE.md) treats
   the plan as the scope contract, rederives semantics from current sources, and
   stops at the named phase boundary.
