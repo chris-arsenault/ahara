@@ -1,6 +1,6 @@
 ---
 name: plan-phase
-description: Use just before executing one phase of an existing feature-start plan, to expand that single milestone into execution-ready numbered steps. Triggers on "plan phase N", "expand phase N into steps", "make phase N executable", "break down the next phase", "detail M2 before I run it". Takes one phase from the milestone plan and writes ordered steps, each naming its file(s), the reference-correct behavior to re-derive, the minimal change, and a red→green verification, with [DECISION] tags and [depends on #X] markers. Pairs with the companion execution prompt (EXECUTE-PHASE.md) that runs the steps. Expand one phase at a time, just-in-time — never the whole plan up front.
+description: Use just before executing one phase of an existing feature-start plan, to expand that single milestone into execution-ready numbered steps. Triggers on "plan phase N", "expand phase N into steps", "make phase N executable", "break down the next phase", "detail M2 before I run it". Takes one phase from the milestone plan and writes ordered steps, each naming its file(s), the reference-correct behavior to re-derive, the minimal change, and a red→green verification, with [DECISION] tags and [depends on #X] markers, then publishes them as a Sulion branch anchored to that milestone. Pairs with the companion execution prompt (EXECUTE-PHASE.md) that runs the steps. Expand one phase at a time, just-in-time — never the whole plan up front.
 ---
 
 # Plan a Phase
@@ -52,6 +52,27 @@ Every step's verification is a test that is **red before the change, green after
 
 Do not specify a test that passes before the change — it proves nothing.
 
+## Publishing the expansion (inside a Sulion PTY)
+
+A phase expansion is a plan *under* a milestone, so publish it as a branch of the root plan
+`feature-start` started, anchored to the milestone's phase:
+
+```sh
+sulion plan branch "M2 — Agentic prose subsystem" --from 3 \
+  --summary "Step expansion of M2" \
+  --phase "Seed pack builders|seedPack.ts renderer" \
+  --phase "Agent loop|runProseAgent, bounded 5 steps"
+```
+
+- `--from` takes the milestone's 1-based position in the root plan. A phase that covers a span
+  of milestones repeats it (`--from 4 --from 5 --from 6`).
+- One published step per numbered step. The step's file/reference/change/verify detail stays in
+  your output — the published phase carries the title and a one-line description, nothing more.
+- Branching moves this terminal onto the expansion, so the executor's status updates land on the
+  right plan. `sulion plan return --completed` at the end of the phase puts it back on the root.
+
+Outside a Sulion PTY, emit the steps and skip this.
+
 ## Plan-specified refactors are legitimate
 
 If the phase calls for a refactor (extract a module, lift a shared helper), write it as its own
@@ -68,7 +89,8 @@ or "refactoring surrounding code" to the executor.
    memory.
 4. Mark `[depends on]` and `[DECISION]` where they apply. Lift any phase-level `[DECISION]` down
    to the specific step that owns it.
-5. Hand off: the user runs the companion execution prompt on this phase.
+5. Publish the expansion as a branch of the root plan, anchored to this milestone's phase.
+6. Hand off: the user runs the companion execution prompt on this phase.
 
 ## Prohibitions
 

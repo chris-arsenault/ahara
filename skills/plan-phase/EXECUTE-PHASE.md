@@ -29,8 +29,31 @@ For each step in the phase, in order:
 4. Run the phase's stated exit gate (`make ci` unless the phase names another) and show me the
    actual output — don't claim it passes without it.
 
-Respect each step's [depends on #X] ordering. When the phase is done, report per-step what
-changed and what was verified, then stop — do not roll into the next phase.
+Respect each step's [depends on #X] ordering.
+
+Inside a Sulion PTY the expansion is published as a branch this terminal is attached to. Move
+each step's status as you go (`sulion plan phase set N in_progress` / `completed`) so the
+progress is visible without reading the transcript.
+
+If a step turns out to be blocked by work that is itself a multi-step job — a prerequisite fix,
+an unrelated regression the gate surfaces, a repair that has to land first — do not inline it
+into the step and do not abandon the phase. Mark the step blocked with the reason, branch, do
+that work as its own plan, and come back:
+
+```sh
+sulion plan phase set 4 blocked --note "checkpoint gate diverges"
+sulion plan branch "Unblock the checkpoint gate" --from 4 \
+  --phase "Instrument the divergence probe" --phase "Fix the gate"
+# …the sub-plan's own steps…
+sulion plan return --completed --note "gate green"
+```
+
+Returning puts this terminal back on the phase and clears the blocked step. Branches nest, so a
+blocker inside a blocker gets the same treatment. A one-line fix is not a branch — inline it.
+
+When the phase is done, report per-step what changed and what was verified, `sulion plan return
+--completed` to put this terminal back on the root plan, then stop — do not roll into the next
+phase.
 
 ---
 
@@ -51,3 +74,8 @@ changed and what was verified, then stop — do not roll into the next phase.
   dev-dependency to do so should add it. Named files define intent; incidental supporting edits
   the change requires are part of the step. The guard against scope creep is "no unrelated code,
   no unrequested behavior, no refactor beyond the step" — not a literal file count.
+- **Branch on a blocker instead of inlining or stalling.** A blocker that is its own multi-step
+  job used to leave two bad options: swell the step until it hides what happened, or stop the
+  phase. A branch keeps the detour's steps visible and separately tracked, and returning restores
+  the phase where it left off — which is also what keeps the detour from silently disappearing
+  into the parent milestone's cycle time.

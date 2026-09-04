@@ -34,7 +34,7 @@ Run these in order. Each stage has an output; do not advance until it exists. Fu
 | S5 | Thread constraints | Each constraint woven through + re-verified | A constraint that rests on a fact (e.g. a dependency boundary) is checked against code |
 | S6 | Pre-create durable docs + structure | ADRs, README/AGENTS/backlog/CHANGELOG, CI-safe dirs | Delegate doc conventions to the **repo-docs** skill; scaffolds must not break the build |
 | S7 | Write the milestone plan | The plan, in the grammar | Numbered phases, each with an exit gate; `[DECISION]` tags; decisions table; context section |
-| S8 | Decision register & handoff | Plan is single source of truth | Collate `[DECISION]` points; hand phases to `plan-phase` |
+| S8 | Decision register & handoff | Plan is single source of truth; published plan tracks it | Collate `[DECISION]` points; publish the root plan (`sulion plan start`, one phase per milestone); hand phases to `plan-phase` |
 
 ## The plan it emits
 
@@ -48,6 +48,23 @@ Place the plan at the repo root as a temporary working doc (e.g. `<FEATURE>-PLAN
 the repo's conventions say otherwise. Durable trade-offs go to ADRs, future work to the
 backlog, decided architecture to the architecture doc — via the repo-docs skill, never inlined
 into the plan.
+
+## Publishing it (inside a Sulion PTY)
+
+The plan file carries the detail; a published plan carries the progress, and survives the
+terminal. Publish the milestones as the **root** plan, one phase per milestone, so every phase
+expansion and every mid-flight detour has something to hang off:
+
+```sh
+sulion plan start "<Feature>" --summary "<one line>" \
+  --phase "M0 — Foundation|<the milestone's one-line goal>|m" \
+  --phase "M1 — Oracle ladder|<…>|l"
+```
+
+Keep the phase titles identical to the plan file's milestone headings — `plan-phase` anchors its
+branch to a phase by position, and the executor reads the two side by side. Size each phase
+(`s|m|l`) when the milestones differ enough in weight to matter. Outside a Sulion PTY, skip this
+and let the plan file stand alone.
 
 ## Prohibitions
 
@@ -63,6 +80,6 @@ into the plan.
 
 ## Handoff
 
-When the plan is written and decisions are registered, stop. To execute, the user runs
-`plan-phase` on one phase to expand it into steps, then the companion execution prompt
-(`~/.claude/skills/plan-phase/EXECUTE-PHASE.md`) to run them.
+When the plan is written, decisions are registered, and the root plan is published, stop. To
+execute, the user runs `plan-phase` on one phase to expand it into steps, then the companion
+execution prompt (`~/.claude/skills/plan-phase/EXECUTE-PHASE.md`) to run them.

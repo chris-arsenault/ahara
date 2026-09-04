@@ -98,7 +98,13 @@ altitude — step-level file/test detail is `plan-phase`'s job.
 ## S8 — Decision register & handoff
 
 Collate every `[DECISION]` into the summary table so the user can see, at a glance, what they
-own and when. State that the plan is the single source of truth. Stop. Execution begins when the
-user runs `plan-phase` on a phase.
+own and when. State that the plan is the single source of truth.
 
-*Output:* the decision register; a clean stop.
+Inside a Sulion PTY, publish the milestones as the root plan (`sulion plan start`, one phase per
+milestone, titles matching the plan file's headings). That plan outlives this terminal and is
+what `plan-phase` branches from; the plan file stays the source of truth for detail. Outside a
+Sulion PTY, skip it.
+
+Stop. Execution begins when the user runs `plan-phase` on a phase.
+
+*Output:* the decision register; a published root plan; a clean stop.
