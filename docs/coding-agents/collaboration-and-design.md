@@ -286,7 +286,7 @@ at a time.
 ### Reference points
 
 - Ahara's
-  [feature-start workflow](../../skills/feature-start/references/sequence.md)
+  [feature-start workflow](../../skills/feature-start/SKILL.md)
   encodes the research, decision, and planning sequence.
 - Mitchell Hashimoto's
   [AI adoption notes](https://mitchellh.com/writing/my-ai-adoption-journey)

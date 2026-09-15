@@ -1,64 +1,75 @@
-# Worked example
+# Examples and behavioral trials
 
-A feature-start plan had this milestone:
+These examples show different verification decisions within the same Sulion workflow. They
+are illustrative contracts, not required architecture or extra project phases.
 
-> ### M0 — Foundation
-> - `lindelion-effect` trait crate: effect trait, params, state, latency, allocation-free
->   `process`; host-agnostic (pure-DSP deps only).
-> - Shared fidelity-harness crate: general-signal battery.
-> - Shared gap-fillers: envelope follower, saturation shaper, extracted STFT.
-> - Validate end-to-end against Gain.
-> - Exit: `make ci` green; Gain passes the general battery.
+## Documentation-only milestone
 
-`plan-phase` expands it into steps. Note the greenfield red→green, the explicit files, the
-plan-specified extraction step, and the `[depends on]` chain.
+M1 corrects an existing setup guide against the shipped configuration. One expansion step
+covers `docs/setup.md` and the README's setup link.
 
-```
-1. Create the lindelion-effect trait crate skeleton.
-   - File(s): crates/lindelion-effect/Cargo.toml, crates/lindelion-effect/src/lib.rs,
-     Cargo.toml (workspace members)
-   - Reference behavior: host-agnostic effect contract per ADR-0013 — depends only on the
-     pure-DSP crates; neutral primitives (sample-block process, indexed float params,
-     byte-blob state, latency-samples).
-   - Change: define the `Effect` trait and param/state types; register the crate as a
-     workspace member. No effect implementations yet.
-   - Verify: `cargo test -p lindelion-effect` compiles and a trait-object smoke test runs.
-     Red before: crate/trait do not exist (does not resolve). Green after.
+- Outcome: instructions reflect supported settings and prerequisites.
+- Change: correct stale settings, examples, and affected references.
+- Verify: compare claims with configuration and installer sources, read the procedure end to
+  end, resolve affected links, and run an existing documentation validator if applicable.
+- Record: the sources reviewed, results, and any command that could not safely be exercised.
 
-2. Add the allocation-free contract test for process.  [depends on #1]
-   - File(s): crates/lindelion-effect/src/lib.rs (tests)
-   - Reference behavior: ADR-0001 — no allocation on the audio thread.
-   - Change: none to production code; add a test using `assert_no_allocations!` around a
-     no-op effect's `process`.
-   - Verify: the no-alloc test passes for a trivial effect; red before means the test/helper
-     wiring doesn't exist yet.
+No new tests, deliberately failing baseline, application refactor, or documentation framework
+is needed. Describing a deployment command does not authorize running it.
 
-3. Extract the allocation-free STFT out of lindelion-pitch-shift into a reusable module.
-   - File(s): crates/lindelion-dsp-utils/src/stft.rs, crates/lindelion-pitch-shift/src/... (call sites)
-   - Reference behavior: behavior-preserving extraction — the pitch-shift analyzer's existing
-     STFT math is unchanged; only its home moves.
-   - Change: lift the STFT into dsp-utils with preallocated scratch; point pitch-shift at it.
-   - Verify: the existing pitch-shift fidelity/quality tests pass unchanged before and after
-     (characterization). This is a plan-specified refactor, not new behavior.
+## Code fix with documentation
 
-4. Add the shared peak/RMS envelope follower.  [depends on #1]
-   - File(s): crates/lindelion-dsp-utils/src/envelope_follower.rs
-   - Reference behavior: attack/release follower (distinct from the synth ADSR already in
-     envelope.rs); speech-tuned defaults are M1's [DECISION], so leave the timing constants
-     as plain parameters here.
-   - Change: implement the follower with no allocation in its hot path.
-   - Verify: a step-input test shows the output reaches ~63% of target in one time constant;
-     red before means the symbol doesn't exist.
+M2 fixes pagination that repeats the last row at a page boundary and updates the API example.
+The cursor contract is settled; the repository already has pagination tests.
 
-5. Implement the Gain effect and run it through the general battery.  [depends on #1, #2]
-   - File(s): speech/gain/Cargo.toml, speech/gain/src/lib.rs, Cargo.toml (members)
-   - Reference behavior: linear gain with smoothed parameter; bypass == identity.
-   - Change: implement `Effect` for Gain reusing dsp-utils smoothing.
-   - Verify: the lindelion-fidelity general battery passes for Gain (finite, no-clicks,
-     bypass-identity, latency-accurate, allocation-free).
+- Outcome: consecutive pages contain each matching row once, preserving the documented order.
+- Change: repair cursor comparison using the existing query path and correct the example.
+- Verify: reproduce the boundary defect in the existing behavior suite, confirm it fails for
+  the defect, then passes after the repair; review the documentation against the fixed contract.
+- Exit: relevant regression and repository checks pass; the final diff preserves scope.
 
-Exit gate: `make ci` green; Gain passes the general battery.
-```
+The documentation needs no sentence-matching test. A new generic pagination framework is not
+justified by this fix.
 
-The executor then runs the companion prompt ([../EXECUTE-PHASE.md](../EXECUTE-PHASE.md)) on
-"Phase M0," doing only these five steps, in order, with red→green verification per step.
+## Resume with new evidence
+
+The root plan records M0 complete, M1 partially implemented, and M2 pending. M1's expansion
+planned a new serializer; current code reveals an existing helper with the required semantics.
+A future M2 rollout step documents a compatibility constraint.
+
+Recover the mapped expansion and its evidence through the plan document, Sulion tree, and
+retrieved history. Read M2's compatibility contract without expanding or executing M2. Reuse
+the helper if it satisfies M1 and that contract; record the evidence and replace the unnecessary
+implementation step. Retain valid completed work. Keep shared-check steps unfinished until the
+check passes. Finish only the authorized milestone.
+
+If M2 instead depends on a user decision after a benchmark, record that owner and trigger and
+leave M2 pending. Do not invent the answer or block independent M1 work.
+
+## Trial substantive skill or prompt changes
+
+Static validation catches metadata, broken references, and inconsistent instructions. To
+assess behavior, run representative requests in an authorized disposable workspace using the
+revised skills and realistic source artifacts. Preserve the two-stage handoff in the trial:
+feature-start's persisted output is the input to plan-phase and its executor.
+
+Give an evaluating model the user request, skill files, and raw task artifacts. Keep the
+expected decisions below out of its task prompt. Use the models the workflow actually runs
+on when available; report which models and scenarios were exercised. Do not claim a
+cross-model result from static review or a single-model walkthrough.
+
+| Scenario | What to inspect in the result |
+| --- | --- |
+| Documentation-only correction | Accurate instructions, existing validation used where helpful, no manufactured red test or new framework. |
+| Code defect plus documentation | A meaningful regression exercises the actual defect; documentation is reviewed; unnecessary architecture is avoided. |
+| Resume with completed work and a newly found helper | Correct Sulion attachment, dependency context read, valid prior work retained, justified plan adaptation persisted. |
+| Deferred user decision | Decision owner and evidence trigger retained; independent work proceeds; dependent work waits. |
+| Unrelated failing gate | Failure reported accurately; no unauthorized repair or false completion; any authorized prerequisite uses a nested branch. |
+
+Compare outcomes, unnecessary artifacts, scope, useful verification, recovery, and completion.
+Use tool traces and produced artifacts as evidence; do not score heading counts, exact wording,
+or number of tests. Stop trials at their authorized local boundary and never mutate production
+or publish results as part of a trial.
+
+For small editorial changes, source and consistency review is enough. If behavioral execution
+is unavailable, record a scenario walkthrough as such and leave model behavior unverified.

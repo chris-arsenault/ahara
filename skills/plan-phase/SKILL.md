@@ -1,102 +1,69 @@
 ---
 name: plan-phase
-description: Use just before executing one phase of an existing feature-start plan, to expand that single milestone into execution-ready numbered steps. Triggers on "plan phase N", "expand phase N into steps", "make phase N executable", "break down the next phase", "detail M2 before I run it". Takes one phase from the milestone plan and writes ordered steps, each naming its file(s), the reference-correct behavior to re-derive, the minimal change, and a red→green verification, with [DECISION] tags and [depends on #X] markers, then publishes them as a Sulion branch anchored to that milestone. Pairs with the companion execution prompt (EXECUTE-PHASE.md) that runs the steps. Expand one phase at a time, just-in-time — never the whole plan up front.
+description: Expand or refresh one milestone of a Sulion feature plan into durable execution steps immediately before implementation. Use for requests such as "plan phase N" or "break down the next phase."
 ---
 
 # Plan a Phase
 
-Turn one milestone from a `feature-start` plan into steps an executor can run mechanically. This
-is the back half of the workflow: `feature-start` wrote the milestone plan; this skill expands
-**one** phase into step-level detail; the companion prompt
-([EXECUTE-PHASE.md](EXECUTE-PHASE.md)) runs it.
+Expand one milestone from feature-start. Save the expansion in the working plan document,
+publish its Sulion branch, and hand it to [EXECUTE-PHASE.md](EXECUTE-PHASE.md). Do not expand
+future milestones speculatively.
 
-This skill lives in two places: `~/.claude/skills/plan-phase/` for active use and
-`~/repos/ahara/skills/plan-phase/` for version-controlled durability. Keep them identical; edit
-either and mirror.
+The maintained source is `~/repos/ahara/skills/`. Keep both complete skill directories
+synchronized in `~/.claude/skills/`, `~/.codex/skills/`, and repository-vendored copies.
 
-## When to use
+## Prepare the expansion
 
-Just before executing a phase — not before. Expanding step-level detail for a phase that may
-still change (a contingency, a phase gated on an earlier benchmark) is waste. Expand the phase
-you are about to run, run it, then expand the next. One phase at a time.
+Use the shared [Sulion lifecycle](../feature-start/references/sequence.md) to recover the
+correct plan, retrieve prior decisions, and reuse an existing expansion. Read the
+[plan contract](../feature-start/references/plan-grammar.md) for the document fields and
+adaptation rules.
 
-## The per-step template
+Read the selected milestone, relevant decisions, predecessor results, and downstream consumer
+contracts. Other phases are valid context; expanding or implementing them remains outside a
+single-phase request. Verify current sources rather than assuming the old plan is still exact.
 
-Each step strongly should carry these fields (strong guidance, not a hard gate — omit a field
-only when the step genuinely has no use for it, and say why):
+Decompose into coherent, reviewable outcomes. Keep implementation, wiring, documentation, and
+verification together when they establish one outcome. Split for a real dependency, decision,
+or review boundary. Preserve required architecture and durability; do not add abstractions or
+test harnesses to fill template fields.
 
-```
-N. <imperative title>  [depends on #M]  [DECISION]
-   - File(s): <the path(s) the step centers on — plus the incidental plumbing the change
-     requires (a new dependency, module/workspace-member registration, test wiring); these are
-     part of the step, not new scope>
-   - Reference behavior: <the correct semantics to re-derive before editing; cite the plan's
-     Context/reuse-map section or an ADR>
-   - Change: <the minimal edit; no abstraction or refactor beyond what's named>
-   - Verify: <the exact test, written red→green>
-```
+Resolve routine implementation choices from evidence. Carry unresolved user decisions to the
+step they affect, with the evidence trigger and owner. Persist the steps and useful verification
+in the existing plan document, then create or reconcile the matching Sulion expansion with
+unstarted steps pending. Report the document section and expansion identity.
 
-- **Number** every step; they run in listed order.
-- **`[depends on #M]`** when a step needs an earlier step's result and order alone doesn't make
-  it obvious.
-- **`[DECISION]`** when the step's semantics need the user's call — the executor stops here.
+Planning alone ends here. If execution is already authorized, load the companion prompt and
+continue within that authorization.
 
-## The red→green rule (including greenfield)
+## Verification
 
-Every step's verification is a test that is **red before the change, green after.**
+This section governs verification for planning and execution. Match evidence to the claim,
+risk, and actual consumer rather than to file extension or a per-step test requirement.
 
-- **Modifying existing behavior:** red means the old behavior fails the new assertion.
-- **New code (greenfield):** red means the symbol, crate, or contract does not exist yet — the
-  test fails to compile or resolve. That still counts as red→green; say so in the step so the
-  executor doesn't expect a behavioral failure.
+| Change | Useful evidence |
+| --- | --- |
+| Code behavior or bug fix | Prefer a focused regression test that fails for the relevant behavior before the fix and passes afterward. Reuse existing coverage when sufficient. |
+| New code | Exercise its real contract and material failure cases. An initial missing symbol can explain a compile failure; the completed test must detect incorrect behavior. |
+| Behavior-preserving refactor | Existing tests pass before and after. Add characterization coverage only for a material gap. |
+| Documentation or plans | Review accuracy, completeness, examples, and affected links against their sources. Use applicable existing validators. No artificial red gate or tests that merely assert wording, headings, or file existence. |
+| Skills or prompts | Check structure and consistency. For substantive behavioral changes, trial representative tasks on the models used when available and authorized; inspect their decisions and artifacts. A metadata validator does not establish agent behavior. |
+| Configuration, schemas, executable examples, or generated output | Use checks for the actual consumer: validation, builds, behavior checks, or a safe dry run as appropriate. Add regression coverage for a meaningful contract. |
 
-Do not specify a test that passes before the change — it proves nothing.
+For mixed work, test changed behavior and review the prose. A filesystem or text assertion is
+useful when it protects a real consumed contract, not merely because an instruction was edited.
+Do not test a dummy substitute for production behavior or mirror implementation details.
 
-## Publishing the expansion (inside a Sulion PTY)
+Choose useful baseline checks before editing. Existing passing checks can protect behavior;
+never deliberately break work to manufacture red. Shared verification is valid: identify the
+steps it covers and do not mark them complete before the shared evidence exists. Replace an
+older plan's inappropriate verification with proportionate evidence, recording the reason while
+preserving acceptance criteria.
 
-A phase expansion is a plan *under* a milestone, so publish it as a branch of the root plan
-`feature-start` started, anchored to the milestone's phase:
+Run the phase exit checks after its work, including checks required by repository instructions.
+Reuse an already-run check if it still covers the final state; repeat only after relevant
+changes, failures, or unresolved concerns. Review the final diff and outcome for omitted
+requirements or accidental scope. Record actual evidence and limitations, not just "green."
 
-```sh
-sulion plan branch "M2 — Agentic prose subsystem" --from 3 \
-  --summary "Step expansion of M2" \
-  --phase "Seed pack builders|seedPack.ts renderer" \
-  --phase "Agent loop|runProseAgent, bounded 5 steps"
-```
-
-- `--from` takes the milestone's 1-based position in the root plan. A phase that covers a span
-  of milestones repeats it (`--from 4 --from 5 --from 6`).
-- One published step per numbered step. The step's file/reference/change/verify detail stays in
-  your output — the published phase carries the title and a one-line description, nothing more.
-- Branching moves this terminal onto the expansion, so the executor's status updates land on the
-  right plan. `sulion plan return --completed` at the end of the phase puts it back on the root.
-
-Outside a Sulion PTY, emit the steps and skip this.
-
-## Plan-specified refactors are legitimate
-
-If the phase calls for a refactor (extract a module, lift a shared helper), write it as its own
-numbered step with its file list and a verification (behavior-preserving: the same tests pass
-before and after, or a characterization test). This keeps it from looking like "invented work"
-or "refactoring surrounding code" to the executor.
-
-## Procedure
-
-1. Read the named phase from the plan, plus the plan's Context / reuse-map section and any ADRs
-   it cites. Do not read ahead into other phases.
-2. Decompose the phase into the smallest ordered steps that each touch as few files as possible.
-3. Fill the template per step. Re-derive reference behavior from the cited source-of-truth, not
-   memory.
-4. Mark `[depends on]` and `[DECISION]` where they apply. Lift any phase-level `[DECISION]` down
-   to the specific step that owns it.
-5. Publish the expansion as a branch of the root plan, anchored to this milestone's phase.
-6. Hand off: the user runs the companion execution prompt on this phase.
-
-## Prohibitions
-
-- Do not expand more than the requested phase.
-- Do not invent steps, abstractions, or tests beyond what the milestone specifies. If the phase
-  is underspecified, surface that as a `[DECISION]` rather than inventing scope.
-- Do not specify cross-file sweeping edits in one step; split them so each is reviewable.
-- Do not change the plan's grammar or rename its `[DECISION]` / `[depends on]` tags — the
-  execution prompt keys off them verbatim.
+See [examples and behavioral trials](references/example.md) when choosing evidence for a
+substantive workflow change. Trials should evaluate useful behavior, not exact prose.

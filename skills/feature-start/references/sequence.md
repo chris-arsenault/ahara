@@ -1,110 +1,110 @@
-# The sequence, in detail
+# Sulion lifecycle and recovery
 
-The eight stages of a feature-start. Each names what it produces and the rule that keeps it
-honest. The order is load-bearing: research before questions (so you ask the right ones),
-questions before design (so you don't design the wrong thing), design before docs (so docs
-record a real decision), docs before the plan (so the plan can cite them).
+Both skills and the executor use this procedure. Sulion tracks progress; the linked working
+plan document retains the detailed contract, expansions, decisions, and evidence. A status
+label is not evidence that the underlying work is complete.
 
-## S0 — Frame & load conventions
+## Recover context and identity
 
-Identify the target repo and any reference/source material (another repo, a spec, a C#
-codebase being ported). Read the documentation surface first — README, AGENTS.md, CLAUDE.md,
-the docs index, the ADR index. Extract and write down:
+Read `sulion plan help` before the first plan command in a session. Inspect:
 
-- the **canonical verification command** (e.g. `make ci`) — every phase exit gate references it;
-- the **critical rules** (allocation contracts, size limits, branch policy, "don't add X");
-- the **code map** — where shared code vs product code lives;
-- naming and layering conventions.
+```sh
+sulion plan current
+sulion plan tree
+```
 
-*Output:* a one-screen "what I'm working with."
+If no plan is attached, use `sulion plan list --all`, then `sulion plan show <plan-id>` to
+inspect the relevant records before attaching with `sulion plan attach <plan-id>`. If a plan
+is attached, read its body and the linked document before deciding it is the right one. Do not
+replace, detach, close, or reopen another task's plan to make the current task fit.
 
-## S1 — Gather context (breadth)
+Use retrieval before re-deriving prior decisions or asking the user to repeat context:
 
-Fan out. Use Explore or parallel Agents to sweep the relevant subsystems rather than reading
-one file at a time. You are looking for: the contracts/interfaces the new work plugs into, the
-reusable primitives that already exist, the test/verification harness, and the fixtures. For a
-port or migration, map the source side too.
+```sh
+sulion-retrieve search "<decision or question>"
+sulion-retrieve search "<remembered user wording>" --include user --mode lexical
+sulion-retrieve turn <agent-session-id> <turn-id>
+```
 
-**The rule: verify against current code, not memory, not docs, not a recalled fact.** Docs
-drift; memories are point-in-time. If a doc says a helper exists, open it.
+Read the returned turn or relevant file body; search snippets only locate evidence. For file
+evolution, use `sulion-retrieve file-history <repo/path>`. Read `sulion-retrieve help` for
+other queries and `facets` or `index-status` before concluding material is not indexed.
+If a tool fails, distinguish missing context from a tool or credential failure; report the
+actual boundary rather than inventing history or a replacement tracking system.
 
-*Output:* a context map that separates what already exists / overlaps from what is a gap.
+On resume, reconcile the document with current code, working-tree changes, prior evidence,
+and the Sulion tree. Reuse completed work that is still valid. Recheck a claim when its sources
+changed or its evidence is insufficient; do not rerun every completed step by default.
 
-## S2 — Research the hard parts (depth)
+## Create or update the root
 
-For the genuinely hard pieces (algorithms, dependency boundaries, realtime/perf constraints),
-go deep. Decide, per piece, **reuse vs build-new**, and — critically — note where the intended
-use **diverges** from how an existing primitive is used today (a filter reused in a new
-context still needs new tuning). Surface the realtime/allocation/licensing risks now.
+Reuse an existing plan when it represents this work. For new work, start tracking before
+multi-phase edits. A planning phase may be active while future implementation milestones stay
+pending; create the latter once their scope is known. A plan published only after design is
+ready uses `--all-pending`:
 
-*Output:* a reuse inventory (reuse-as-is / reuse-but-retune / build-new) and a risk list.
+```sh
+sulion plan start "<Feature>" --summary "<intent>; details: <plan-path>" \
+  --phase "M0 — <outcome>|<acceptance summary>" \
+  --phase "M1 — <outcome>|<acceptance summary>" --all-pending
+```
 
-## S3 — Clarify (pause for input)
+Read `sulion plan --json current` for the root and phase IDs and record them in the document.
+Add or update phases as the design
+settles; do not start a duplicate root. Keep titles recognizable and mappings explicit.
+Use phase IDs for later operations when available. Numbered positions are acceptable only
+after checking the current tree; document milestone M0 is not automatically CLI position 0.
 
-Surface **only** the decisions that change the shape of the work. For each, give 2–4 concrete
-options with trade-offs, as a structured multiple-choice question. Do **not** ask about things
-you can verify yourself or that have a clear default — decide those and say so.
+## Expand one milestone
 
-This is iterative: an answer can reshape the design and spawn the next question. Keep going
-until no shape-changing decision is open. **This is a hard pause — do not proceed past an
-unresolved fork by guessing.**
+Read the milestone body, its decisions and evidence, and relevant dependencies. If a matching
+expansion exists, inspect and reuse it. Otherwise attach the correct parent and branch:
 
-*Output:* recorded answers, each tied to the design choice it settles.
+```sh
+sulion plan branch "<milestone> — execution" --from <milestone-phase-id> \
+  --summary "Expansion in <plan-path>#<section>" \
+  --phase "<step>|<outcome>" --phase "<step>|<outcome>" --all-pending
+```
 
-## S4 — Confirm understanding
+Read `sulion plan --json current` for the expansion and step IDs and save them with the
+expansion in the working document before handing off. The document
+contains the actual file/outcome/change/verify detail; the Sulion summary points to it.
+Planning an expansion does not mark its steps as executing.
 
-Before designing, present the rough analysis: what you understand the goal to be, the scope,
-the tiers/components, the approach. Get an explicit "yes, that's right." This is the cheapest
-place to catch a misread.
+## Execute and handle blockers
 
-*Output:* user confirmation.
+Before each status mutation, ensure the attached plan is the intended expansion or prerequisite
+branch. Mark work `in_progress` when it starts, and `completed` only after its outcome and
+required evidence are established. If several steps share a later check, record what is
+implemented and what remains unverified; keep completion pending until that evidence exists.
 
-## S5 — Thread cross-cutting constraints
+A prerequisite that is itself a multi-step job gets a nested branch, not hidden extra work:
 
-Constraints often arrive one at a time, after the first sketch ("it must also stay
-packaging-neutral", "tune for speech not music"). Each one is woven through the **whole**
-design, not bolted onto one section. When a constraint rests on a fact — "the core must not
-depend on the host layer" depends on what the host layer pulls in — re-verify that fact against
-code. Constraints that will outlive the plan become durable rules (ADR / AGENTS critical rule),
-not plan prose.
+```sh
+sulion plan phase set <step-id> blocked --note "<verified blocker>"
+sulion plan branch "<required prerequisite>" --from <step-id> \
+  --summary "<authorized scope>; details: <plan-path>#<section>" \
+  --phase "<diagnose>" --phase "<resolve>"
+```
 
-*Output:* each constraint reflected everywhere it applies, and re-verified where factual.
+Branch only into repair work already authorized by the task. An unrelated regression, external
+write, destructive action, or authority change may need the user's decision first. Tracking a
+blocker grants no permission to fix it. A small authorized fix can remain in the current step;
+size determines tracking, not authorization. Use `sulion activity` to expose blocked or
+needs-input state, following its command help.
 
-## S6 — Pre-create durable docs + structure
+On completion of an authorized prerequisite, update its evidence in the document and use
+`sulion plan return --completed`. Returning clears the parent's blocked state; it does not
+prove the parent acceptance condition. Recheck the affected outcome and resume the parent.
 
-Once decisions are settled, make them durable and reserve the structure:
+## Finish or hand off
 
-- **ADRs** for genuine trade-offs (a decision with real, rejected alternatives). One per
-  decision, Context/Decision/Alternatives/Consequences.
-- **Doc surface** updates — README, AGENTS code-map/critical-rules, docs index, backlog
-  (future work as positive future-state), CHANGELOG (one curated line).
-- **Directory structure** — reserve crate/module homes with READMEs describing intent.
+At a phase boundary, update the document's changes, evidence, unresolved items, and next action.
+Complete the expansion's steps, then `sulion plan return --completed` to close that branch.
+Inspect the parent and mark the milestone complete only when its acceptance condition is met.
+Keep future milestones pending. Close the root with `sulion plan close --completed` only when
+all required work is complete; do not hide missing evidence with `--skip-remaining`.
 
-Delegate all documentation-convention questions to the **repo-docs** skill; do not re-derive
-them here. **CI-safety is mandatory:** a reserved home is a directory with a README, not a
-half-built workspace member — confirm the build still passes (the dirs are not yet registered).
-
-*Output:* ADRs, updated indexes, scaffolded dirs, a build that still goes green.
-
-## S7 — Write the milestone plan
-
-Emit the plan in the grammar from [plan-grammar.md](plan-grammar.md): numbered phases each with
-an exit gate, a decisions summary table, `[DECISION]` tags, `[depends on]` markers where phases
-order, and a Context / reuse-map section the executor re-derives from. Keep it at milestone
-altitude — step-level file/test detail is `plan-phase`'s job.
-
-*Output:* the written plan at the repo root.
-
-## S8 — Decision register & handoff
-
-Collate every `[DECISION]` into the summary table so the user can see, at a glance, what they
-own and when. State that the plan is the single source of truth.
-
-Inside a Sulion PTY, publish the milestones as the root plan (`sulion plan start`, one phase per
-milestone, titles matching the plan file's headings). That plan outlives this terminal and is
-what `plan-phase` branches from; the plan file stays the source of truth for detail. Outside a
-Sulion PTY, skip it.
-
-Stop. Execution begins when the user runs `plan-phase` on a phase.
-
-*Output:* the decision register; a published root plan; a clean stop.
+For interruption or missing authority, retain the accurate unfinished state and a resumable
+next action. Honor the user's execution scope: stop after one phase when that is what they
+authorized; if they authorized the whole plan, expand the next phase just in time and continue.

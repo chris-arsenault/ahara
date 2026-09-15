@@ -60,7 +60,7 @@ gates. Do not implement yet.
 In a repository with a mature workflow, I state the outcome and constraints,
 then ask the agent to run the feature-start workflow. The longer form matters
 when the environment does not already encode the sequence in a skill. Ahara's
-[feature-start sequence](../../skills/feature-start/references/sequence.md) is
+[feature-start skill](../../skills/feature-start/SKILL.md) is
 the reference implementation.
 
 ## Resume a Project With a State Audit
@@ -176,14 +176,20 @@ One-phase execution is the bounded form. The written plan owns scope; current
 code and cited decisions own semantics.
 
 ```text
-Work Phase [N] of the plan, and only that phase, in the listed order. Treat the
-plan as the scope contract, then rederive correct behavior from current code,
-repository instructions, and cited ADRs.
+Work Phase [N] in [plan path], and only that phase. Recover its Sulion expansion
+and persisted evidence, then check current sources and relevant dependency
+contracts. Use Sulion retrieval for missing decisions or history. Preserve the
+agreed outcome and acceptance criteria; adapt stale implementation details when
+evidence warrants it and record the change in the plan.
 
-For each step, make the named change plus required incidental plumbing, prove
-the specified check fails before the change when practical, then make it pass.
-Run the phase exit gate and report the actual result. Stop at the phase
-boundary. Do not start later phases or invent adjacent refactors.
+For each step, make the named change plus required incidental plumbing and
+verify the intended outcome. Prefer red-to-green regression tests for code
+behavior changes. Use existing passing tests for refactors, and source review
+plus applicable validators for documentation; do not manufacture failing tests
+for prose or file existence. Run or reuse checks covering the final state, and
+record results, unfinished work, and the next action in the plan. A prerequisite
+branch tracks authorized work; it does not authorize unrelated repairs. Finish
+the Sulion expansion and stop at the phase boundary.
 ```
 
 Ahara's fuller

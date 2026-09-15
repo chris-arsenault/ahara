@@ -138,10 +138,11 @@ the approved design still determine exact behavior when implementation begins.
 
 - [Sulion's plan publisher](https://github.com/chris-arsenault/sulion)
   exposes phase names, status, notes, and history while the detailed execution
-  plan remains with the working agent.
+  plan and execution evidence remain in a linked working document.
 - Ahara's [plan-phase prompt](../../skills/plan-phase/EXECUTE-PHASE.md) treats
   the plan as the scope contract, rederives semantics from current sources, and
-  stops at the named phase boundary.
+  adapts implementation details within that contract, and stops at the boundary
+  the user authorized.
 
 ## Reject Errors With a Useful Next Step
 
