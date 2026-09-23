@@ -370,9 +370,13 @@ TrueNAS services are reached via WireGuard VPN. The reverse proxy (nginx on EC2)
   - `buffering = "off"` for streaming and long-lived connections
   - `websocket = true` to forward WebSocket upgrade headers
 
-For a project-owned route, deploy `ahara-infra` first so the internal upstream,
-WireGuard ingress, and deployer permissions exist. Then deploy the project to
-create the listener rules, certificate, and DNS.
+The WireGuard host forwards only ports listed in `ahara-vpn`
+`infrastructure/terraform/locals.tf` `tunnel_service_ports`; add the container
+host port there as well.
+
+For a project-owned route, deploy `ahara-vpn` and `ahara-infra` first so the
+tunnel ingress, internal upstream, and deployer permissions exist. Then deploy
+the project to create the listener rules, certificate, and DNS.
 
 ---
 
