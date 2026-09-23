@@ -439,6 +439,7 @@ Existing allocations:
 | 220–229 | shell.ahara.io (reserved block) | athena-s3-web-shell |
 | 230–231 | foundry.ahara.io, api.foundry-vtt.ahara.io | foundry-vtt |
 | 240–243 | tsonu-music admin API | tsonu-music |
+| 250–251 | server.biotropy.ahara.io | antropy |
 | 300–302 | svap | svap |
 | 320–321 | ahara-business | ahara-business |
 | 370–371 | ahara-access | ahara-access |
