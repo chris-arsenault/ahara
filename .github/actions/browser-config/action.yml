@@ -1,0 +1,15 @@
+name: Detect browser tests
+description: Discover the standard browser package scripts and validate platform overrides.
+outputs:
+  enabled:
+    description: Whether browser tests are required.
+    value: ${{ steps.config.outputs.enabled }}
+  config:
+    description: Validated browser directory, engines, scripts and artifact paths as JSON.
+    value: ${{ steps.config.outputs.config }}
+runs:
+  using: composite
+  steps:
+    - id: config
+      shell: bash
+      run: python3 "$GITHUB_ACTION_PATH/config.py"

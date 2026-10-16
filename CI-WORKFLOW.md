@@ -49,10 +49,18 @@ The shared workflow reads `platform.yml` and runs the appropriate steps based on
 12. **Grafana dashboard deploy (if configured)** — product-owned dashboards are pushed through the shared dashboard deploy Lambda
 13. **Report** — normalizes GitHub checks, tests, coverage, and Qlty output into PostgreSQL
 
+Browser testing is detected before the `ci` job. A TypeScript package with a
+`test:browser` script gets parallel Chromium, Firefox and WebKit jobs. All required
+engines, production journeys and repository prerequisites must pass before `ci`
+starts, so they gate every deployment path inside that job. Projects without the
+script skip the matrix and continue normally. This keeps the existing combined
+validation/deployment job and its build caches intact; lint and unit tests run
+after the browser matrix for projects that enable it.
+
 ### What it does NOT do
 
 - .NET builds (use a custom workflow)
-- Matrix strategies (e.g., websites' multi-app typecheck)
+- Custom matrix strategies beyond the standard browser engines (e.g., websites' multi-app typecheck)
 - Custom deploy flows requiring secrets beyond OIDC_ROLE and STATE_BUCKET
 
 ---
@@ -73,6 +81,9 @@ stack:                   # Declares which lint/build/deploy steps to run
   - nix                  # docker-build of ci/Dockerfile.check: flake evaluate + VM tests
 rust_dir: backend        # Optional source-root override when auto-detection is ambiguous
 typescript_dir: apps/web # Optional source-root override for repos with several package.json files
+browser_tests:           # Optional overrides; test:browser is detected automatically
+  engines: [chromium, firefox, webkit]
+  artifacts: [apps/web/test-results/, apps/web/playwright-report/]
 migrations: db/migrations  # Optional — enables run-migrations step
 truenas: true            # Optional — enables Docker + Komodo deploy
 truenas_images: false    # Optional — skip GHCR image build for upstream-image Compose stacks
@@ -101,6 +112,60 @@ observability:           # Optional — deploy product-owned Grafana dashboards 
 ```
 
 Only include stack components your project actually has. The shared workflow skips steps for missing components.
+
+### Browser test contract
+
+Keep browser scenarios, fixtures, test-runner configuration, temporary server
+lifecycle and concurrency settings in the product repository. The shared runner
+does not parse Playwright or Vitest configuration. Instead, the detected
+TypeScript package exposes these scripts:
+
+| Script | Execution |
+|--------|-----------|
+| `test:browser` | Required to enable detection; runs in the Playwright container for every engine |
+| `test:browser:verify` | Optional independent host-side checks; runs once, in the first configured engine job |
+| `build` | Required when `test:release` exists; runs on the host before production journeys, including on pull requests |
+| `test:release` | Optional production journeys; runs in the same Playwright environment for every engine |
+
+Each browser script receives `CI=1` and `BROWSER=chromium`, `firefox` or `webkit`.
+The repository maps `BROWSER` into its test runner's engine selection. Its default
+unit-test command must continue to exclude browser/release projects under CI
+unless explicitly selected. Any browser, prerequisite, build or production-test
+failure blocks the combined CI/deployment job; the matrix does not fail fast.
+Each engine job has its own checkout. Engine-specific preparation belongs in
+`test:browser`; the one-time verification hook does not share files between jobs.
+
+The runtime resolves the installed `playwright` package, directly or through
+`@playwright/test`, and uses the official `v<version>-noble` image. Browsers and
+their OS libraries are already installed; the small shared image adds pnpm
+10.29.3. Tests run as the runner user with the repository bind-mounted, and the
+temporary container is removed on exit. Servers started by browser scripts or
+runner configuration should run inside that container and be cleaned up by the
+tests. No application credentials are injected into the browser container.
+
+`browser_tests.engines` optionally narrows the default three-engine matrix.
+`browser_tests.artifacts` optionally replaces the default `test-results/` and
+`playwright-report/` paths under the detected package directory; paths are
+repository-relative and uploaded after failure as well as success, for seven
+days. Declare only generated test output. Set `browser_tests: false` to explicitly
+opt out. Declaring a browser capability without a `test:browser` script, or
+supplying invalid settings, fails detection instead of silently bypassing tests.
+
+For PDFree, `test:browser:verify` runs its native PDF encryption/signature
+verifiers, while the browser and production scripts adapt `BROWSER` to Vitest.
+Its independent PDF tools remain product-owned rather than part of the shared
+browser image.
+
+Publish the shared workflow and actions before product migrations that remove
+repository-owned browser jobs. Callers reference `@main`, so the shared
+implementation must be available before those migrations land.
+
+Validate the shared contract and runtime locally from the Ahara repository:
+
+```bash
+python3 .github/actions/browser-config/test_config.py
+node --test .github/actions/browser-tests/run.test.mjs
+```
 
 `rust_artifacts` is mandatory whenever `rust` is in `stack`. Use `rust_artifacts: {}` for rust code with no deployable artifacts (e.g. a library-only crate). The two sub-keys are independent — a project can declare `lambdas`, `binaries`, both, or neither. `truenas: true` no longer implies a Rust binary build; declare `binaries:` if your Docker image needs one.
 
@@ -283,6 +348,8 @@ The shared workflow handles lint, tests, Qlty, and engineering reporting. Only d
 | `collect-engineering-report` | Pinned Qlty maintainability scan and report artifacts |
 | `report-build` | Normalizes and ingests checks, tests, coverage, and Qlty output |
 | `governance-check` | Validates workflow against platform.yml stack |
+| `browser-config` | Detects browser scripts and validates engine/artifact settings |
+| `browser-tests` | Runs browser scripts in the installed Playwright version's image |
 | `run-migrations` | Upload and run database migrations |
 | `deploy-truenas` | Docker + Komodo deploy for TrueNAS services |
 | `deploy-grafana-dashboards` | Deploy product-owned Grafana dashboards through the shared Lambda |

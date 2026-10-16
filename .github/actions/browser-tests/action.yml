@@ -1,0 +1,53 @@
+name: Test browsers
+description: Run repository browser scripts in the matching Playwright environment.
+inputs:
+  config:
+    description: Validated configuration from browser-config.
+    required: true
+  engine:
+    description: Browser engine for this matrix entry.
+    required: true
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@v6
+      with:
+        node-version: "24"
+    - name: Install pnpm
+      shell: bash
+      run: corepack enable && corepack prepare pnpm@10.29.3 --activate
+    - name: Install browser test dependencies
+      shell: bash
+      working-directory: ${{ fromJSON(inputs.config).directory }}
+      run: pnpm install --frozen-lockfile
+    - name: Prepare browser runtime
+      shell: bash
+      env:
+        BROWSER_DIRECTORY: ${{ fromJSON(inputs.config).directory }}
+        BROWSER: ${{ inputs.engine }}
+      run: node "$GITHUB_ACTION_PATH/run.mjs" "$BROWSER_DIRECTORY" "$BROWSER" image
+    - name: Test independent repository checks
+      if: fromJSON(inputs.config).verify && inputs.engine == fromJSON(inputs.config).engines[0]
+      shell: bash
+      working-directory: ${{ fromJSON(inputs.config).directory }}
+      env:
+        BROWSER: ${{ inputs.engine }}
+      run: pnpm run test:browser:verify
+    - name: Test browser interactions
+      shell: bash
+      env:
+        BROWSER_DIRECTORY: ${{ fromJSON(inputs.config).directory }}
+        BROWSER: ${{ inputs.engine }}
+      run: node "$GITHUB_ACTION_PATH/run.mjs" "$BROWSER_DIRECTORY" "$BROWSER" test:browser
+    - name: Build browser production fixture
+      if: fromJSON(inputs.config).release
+      shell: bash
+      working-directory: ${{ fromJSON(inputs.config).directory }}
+      run: pnpm run build
+    - name: Test browser production journeys
+      if: fromJSON(inputs.config).release
+      shell: bash
+      env:
+        BROWSER_DIRECTORY: ${{ fromJSON(inputs.config).directory }}
+        BROWSER: ${{ inputs.engine }}
+      run: node "$GITHUB_ACTION_PATH/run.mjs" "$BROWSER_DIRECTORY" "$BROWSER" test:release

@@ -18,7 +18,56 @@ on:
         required: true
 
 jobs:
+  browser-config:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      enabled: ${{ steps.browser.outputs.enabled }}
+      config: ${{ steps.browser.outputs.config }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: chris-arsenault/ahara/.github/actions/browser-config@main
+        id: browser
+
+  browser:
+    name: Browser (${{ matrix.engine }})
+    needs: [browser-config]
+    if: needs.browser-config.outputs.enabled == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        engine: ${{ fromJSON(needs.browser-config.outputs.config).engines }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: chris-arsenault/ahara/.github/actions/browser-tests@main
+        with:
+          config: ${{ needs.browser-config.outputs.config }}
+          engine: ${{ matrix.engine }}
+      - name: Upload browser artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ahara-browser-${{ matrix.engine }}
+          path: ${{ fromJSON(needs.browser-config.outputs.config).artifact_paths }}
+          if-no-files-found: ignore
+          retention-days: 7
+
   ci:
+    needs: [browser-config, browser]
+    # A skipped matrix is valid only when detection explicitly disabled it.
+    # Failed/cancelled detection or any engine must prevent this deploy job.
+    if: >-
+      ${{ !cancelled() && needs.browser-config.result == 'success' &&
+          ((needs.browser-config.outputs.enabled == 'true' && needs.browser.result == 'success') ||
+           (needs.browser-config.outputs.enabled == 'false' && needs.browser.result == 'skipped')) }}
     runs-on: ubuntu-latest
     concurrency:
       group: ${{ github.ref == 'refs/heads/main' && format('{0}-deploy', github.event.repository.name) || format('{0}-{1}', github.event.repository.name, github.ref) }}
@@ -32,6 +81,8 @@ jobs:
 
       - name: Read platform.yml
         id: config
+        env:
+          BROWSER_CONFIG: ${{ needs.browser-config.outputs.config }}
         run: |
           set -euo pipefail
           python3 << 'PYEOF'
@@ -180,7 +231,8 @@ jobs:
                   rust_dir = os.path.dirname(sorted(cargo_files, key=lambda p: p.count('/'))[0]) or '.'
               else:
                   rust_dir = 'backend'
-              typescript_dir_override = cfg.get('typescript_dir')
+              browser_config = json.loads(os.environ['BROWSER_CONFIG'])
+              typescript_dir_override = cfg.get('typescript_dir') or browser_config.get('directory')
               pkg_jsons = [p for p in glob.glob('**/package.json', recursive=True)
                            if 'node_modules' not in p and 'backend' not in p]
               if typescript_dir_override:
@@ -768,7 +820,7 @@ jobs:
 
   report:
     if: always()
-    needs: [ci]
+    needs: [browser-config, browser, ci]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
