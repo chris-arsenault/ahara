@@ -6,7 +6,7 @@ Work in this order so destructive edits come last and review is easy.
 
 ## 1. Inventory and audit
 
-Read every `.md` in the repo. Produce a structured list of violations with file:line quotes. Look for:
+Read every `.md` in the repo. Summarize violations in chat with file:line quotes; do not create an audit report file unless explicitly requested. Look for:
 
 - **Historical narrative** outside `CHANGELOG.md` or an ADR. Phrases: "we used to", "previously", "migrated from".
 - **Apologetic language.** Phrases: "this isn't ideal but", "for historical reasons", "TODO/FIXME prose".
@@ -18,7 +18,7 @@ Read every `.md` in the repo. Produce a structured list of violations with file:
 - **Broken links to legacy agent files** (e.g., `CODEX.md` referenced after `AGENTS.md` became canonical).
 - **AGENTS.md / CLAUDE.md duplicated identically.** Should be canonical-plus-import.
 
-For each violation, record: file path, line number(s), quoted text, which principle it violates.
+For each violation, include in the chat summary: file path, line number(s), quoted text, which principle it violates.
 
 ## 2. Create the missing scaffolds (additive, low-risk)
 

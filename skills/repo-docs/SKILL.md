@@ -41,6 +41,14 @@ When the task is "apply this to a repo," do not stop at additive scaffolds. The 
 
 ## Prohibitions (apply inline as you write)
 
+**Reports and verification output:**
+- Do NOT create verification, validation, audit, test, release-evidence,
+  completion or handoff report files unless the user explicitly requests one.
+- Summarize checks and material failures in chat or existing CI output. Keep
+  generated logs/screenshots/results in ignored test-output directories.
+- A documentation pass maintains current usage/architecture, ADRs, indexes and
+  changelogs; it does not require a separate report or release-evidence archive.
+
 **In top-level files (README, AGENTS, CLAUDE):**
 - Do NOT inline content that belongs in `docs/`. The top-level files are indexes.
 - Do NOT duplicate content between AGENTS.md and CLAUDE.md. CLAUDE.md is `@AGENTS.md` plus Claude-specific overrides.

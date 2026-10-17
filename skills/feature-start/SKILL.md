@@ -1,6 +1,6 @@
 ---
 name: feature-start
-description: Plan a substantial feature, subsystem, port, or migration in Sulion. Establish scope, decisions, and milestones before implementation. Use for feature-planning requests; skip localized changes.
+description: Plan substantial features, subsystems, migrations, ports, or complex refactors requiring architectural decisions in Sulion. Skip ordinary investigations, bug fixes, small additions, and documentation updates; needing progress tracking alone is insufficient.
 ---
 
 # Feature Start
@@ -8,6 +8,19 @@ description: Plan a substantial feature, subsystem, port, or migration in Sulion
 Produce the feature contract and milestone plan. **plan-phase** expands one milestone just
 before execution; its **EXECUTE-PHASE.md** prompt carries out that expansion. Keep these two
 skills separate.
+
+## When to use
+
+Use when a wrong architectural shape would be expensive: a substantial feature, subsystem,
+port, migration, or complex refactor with decisions about interfaces, ownership, or durable
+data. Ordinary investigation, debugging, small additions, and documentation updates proceed
+directly. Duration, uncertainty, file count, and the word "plan" alone do not qualify work.
+
+Use `sulion plan` directly when progress tracking is required by the task or repository rules.
+Starting a plan, separating a repair from completed work, or branching for a blocker does not
+require either planning skill or a feature-plan document. An investigation may uncover a need
+for architectural work; use this workflow once evidence establishes that need, within the
+user's authorized scope. If this skill was selected for ordinary work, return to direct work.
 
 This workflow uses Sulion plans and retrieval. The maintained source is
 `~/repos/ahara/skills/`; synchronize both complete skill directories to `~/.claude/skills/`,

@@ -4,6 +4,10 @@ Both skills and the executor use this procedure. Sulion tracks progress; the lin
 plan document retains the detailed contract, expansions, decisions, and evidence. A status
 label is not evidence that the underlying work is complete.
 
+Apply this lifecycle after the skills' applicability checks. General requirements to use
+`sulion plan` do not invoke these skills: ordinary tasks can track phases, evidence, and
+blockers directly without a feature contract, milestone document, or execution expansion.
+
 ## Recover context and identity
 
 Read `sulion plan help` before the first plan command in a session. Inspect:

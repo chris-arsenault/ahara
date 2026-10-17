@@ -677,9 +677,9 @@ validation, and Alloy/OTel-SDK producer wiring) before rolling your own.
 
 Skip this step if your project has no web frontend.
 
-Use the [`website`](https://github.com/chris-arsenault/ahara-tf-patterns/tree/main/modules/website) module. It deploys files to S3 behind CloudFront with a custom domain, ACM certificate, WAF, KMS encryption, and CloudFront invalidation on deploy.
+Use the [`website`](https://github.com/chris-arsenault/ahara-tf-patterns/tree/main/modules/website) module. It deploys files to private S3 behind CloudFront with a custom domain, ACM certificate, KMS encryption, and CloudFront invalidation on deploy. The website module no longer provisions or attaches a WAF web ACL.
 
-Include `"website"` in your `module_bundles` (Step 1) — it auto-grants all required IAM permissions including `s3-website`, `cloudfront-distribution`, `acm-dns`, `wafv2` (CloudFront-scoped), and `kms-admin`.
+Include `"website"` in your `module_bundles` (Step 1) — it auto-grants the module's IAM permissions. The current bundle still includes `wafv2` permissions; that permission does not imply that the website module creates a WAF web ACL.
 
 ### SPA (React, Vue, etc.)
 
@@ -698,7 +698,7 @@ module "frontend" {
 }
 ```
 
-`prefix` must match the project prefix from Step 1 — it's used for the S3 bucket name, KMS key, WAF, and all other resources.
+`prefix` must match the project prefix from Step 1 — it's used for the S3 bucket name, KMS key, and the module's other resource names.
 
 The `runtime_config` map is injected as `window.__APP_CONFIG__` via a `config.js` file (served with `no-cache`). `index.html` is also `no-cache`; all other assets are `immutable` with 1-year max-age. SPA routing (404/403 → index.html) is enabled by default.
 

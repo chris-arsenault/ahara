@@ -1,6 +1,6 @@
 ---
 name: plan-phase
-description: Expand or refresh one milestone of a Sulion feature plan into durable execution steps immediately before implementation. Use for requests such as "plan phase N" or "break down the next phase."
+description: Expand an imminent milestone of an existing substantial feature or architectural refactor plan in Sulion. Use for phase-planning requests within that workflow; skip ordinary investigation, repair, or small-addition tracking plans.
 ---
 
 # Plan a Phase
@@ -8,6 +8,17 @@ description: Expand or refresh one milestone of a Sulion feature plan into durab
 Expand one milestone from feature-start. Save the expansion in the working plan document,
 publish its Sulion branch, and hand it to [EXECUTE-PHASE.md](EXECUTE-PHASE.md). Do not expand
 future milestones speculatively.
+
+## When to use
+
+Use for a selected milestone in an existing feature-start plan, or an equivalent substantial
+feature or architectural refactor plan. Read its substance to establish that scope; a Sulion
+plan ID, phase label, or request to "break down the next phase" is insufficient by itself.
+Ordinary investigation, repair, small additions, and documentation updates use direct work
+and Sulion tracking when needed. Do not create a feature plan merely to qualify for this skill.
+
+A documentation or bug-fix step can belong to a qualifying milestone. The verification table
+below covers such steps; it does not make every listed change a trigger for this workflow.
 
 The maintained source is `~/repos/ahara/skills/`. Keep both complete skill directories
 synchronized in `~/.claude/skills/`, `~/.codex/skills/`, and repository-vendored copies.

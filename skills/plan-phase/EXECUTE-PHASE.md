@@ -7,6 +7,10 @@ feature-start and plan-phase skills; no third skill is required.
 
 Execute milestone <M#> in <plan-path> within the user's authorized scope.
 
+Read the plan's scope first: this prompt applies to a milestone of an existing substantial
+feature or architectural refactor plan. Ordinary investigation or repair tracking does not
+qualify; continue that work directly without manufacturing an expansion.
+
 Recover the current Sulion plan and expansion using the
 [shared lifecycle](../feature-start/references/sequence.md). Read the milestone and its
 persisted expansion, relevant decisions, predecessor evidence, and consumer contracts. Use
