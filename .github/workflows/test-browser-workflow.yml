@@ -5,12 +5,14 @@ on:
     paths:
       - .github/actions/browser-config/**
       - .github/actions/browser-tests/**
+      - .github/actions/browser-runtime/**
       - .github/workflows/ci.yml
       - .github/workflows/test-browser-workflow.yml
   pull_request:
     paths:
       - .github/actions/browser-config/**
       - .github/actions/browser-tests/**
+      - .github/actions/browser-runtime/**
       - .github/workflows/ci.yml
       - .github/workflows/test-browser-workflow.yml
   workflow_dispatch:
@@ -31,4 +33,4 @@ jobs:
       - name: Test detection and deployment gates
         run: python3 .github/actions/browser-config/test_config.py
       - name: Test browser runtime and failure propagation
-        run: node --test .github/actions/browser-tests/run.test.mjs
+        run: node --test .github/actions/browser-runtime/run.test.mjs

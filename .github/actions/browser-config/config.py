@@ -56,12 +56,15 @@ def detect(root):
             raise ValueError("browser_tests requires a test:browser package script")
         return disabled
     settings = settings if isinstance(settings, dict) else {}
-    unknown = settings.keys() - {"engines", "artifacts"}
+    unknown = settings.keys() - {"engines", "artifacts", "runtime"}
     if unknown:
         raise ValueError(
             f"Unknown browser_tests setting(s): {', '.join(sorted(unknown))}"
         )
     engines = settings.get("engines", ENGINES)
+    execution = settings.get("runtime", "container")
+    if execution not in ("container", "host"):
+        raise ValueError("browser_tests.runtime must be container or host")
     if (
         not isinstance(engines, list)
         or not engines
@@ -92,6 +95,7 @@ def detect(root):
     return {
         "enabled": True,
         "directory": directory,
+        "runtime": execution,
         "engines": engines,
         "verify": bool(scripts.get("test:browser:verify")),
         "release": bool(scripts.get("test:release")),

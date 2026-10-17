@@ -1,5 +1,5 @@
 name: Test browsers
-description: Run repository browser scripts in the matching Playwright environment.
+description: Run repository browser scripts using the declared Playwright runtime.
 inputs:
   config:
     description: Validated configuration from browser-config.
@@ -21,11 +21,11 @@ runs:
       working-directory: ${{ fromJSON(inputs.config).directory }}
       run: pnpm install --frozen-lockfile
     - name: Prepare browser runtime
-      shell: bash
-      env:
-        BROWSER_DIRECTORY: ${{ fromJSON(inputs.config).directory }}
-        BROWSER: ${{ inputs.engine }}
-      run: node "$GITHUB_ACTION_PATH/run.mjs" "$BROWSER_DIRECTORY" "$BROWSER" image
+      uses: chris-arsenault/ahara/.github/actions/browser-runtime@main
+      with:
+        directory: ${{ fromJSON(inputs.config).directory }}
+        engine: ${{ inputs.engine }}
+        runtime: ${{ fromJSON(inputs.config).runtime || 'container' }}
     - name: Test independent repository checks
       if: fromJSON(inputs.config).verify && inputs.engine == fromJSON(inputs.config).engines[0]
       shell: bash
@@ -38,7 +38,8 @@ runs:
       env:
         BROWSER_DIRECTORY: ${{ fromJSON(inputs.config).directory }}
         BROWSER: ${{ inputs.engine }}
-      run: node "$GITHUB_ACTION_PATH/run.mjs" "$BROWSER_DIRECTORY" "$BROWSER" test:browser
+        BROWSER_RUNTIME: ${{ fromJSON(inputs.config).runtime || 'container' }}
+      run: node "$GITHUB_ACTION_PATH/../browser-runtime/run.mjs" "$BROWSER_DIRECTORY" "$BROWSER" test:browser "$BROWSER_RUNTIME"
     - name: Build browser production fixture
       if: fromJSON(inputs.config).release
       shell: bash
@@ -50,4 +51,5 @@ runs:
       env:
         BROWSER_DIRECTORY: ${{ fromJSON(inputs.config).directory }}
         BROWSER: ${{ inputs.engine }}
-      run: node "$GITHUB_ACTION_PATH/run.mjs" "$BROWSER_DIRECTORY" "$BROWSER" test:release
+        BROWSER_RUNTIME: ${{ fromJSON(inputs.config).runtime || 'container' }}
+      run: node "$GITHUB_ACTION_PATH/../browser-runtime/run.mjs" "$BROWSER_DIRECTORY" "$BROWSER" test:release "$BROWSER_RUNTIME"

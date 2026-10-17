@@ -47,6 +47,7 @@ class BrowserConfigTests(unittest.TestCase):
         )
         config = CONFIG.detect(self.root)
         self.assertTrue(config["enabled"])
+        self.assertEqual(config["runtime"], "container")
         self.assertTrue(config["release"])
         self.assertFalse(config["verify"])
         self.assertEqual(config["engines"], ["chromium", "firefox", "webkit"])
@@ -109,6 +110,16 @@ class BrowserConfigTests(unittest.TestCase):
         )
         self.assertFalse(CONFIG.detect(self.root)["enabled"])
 
+    def test_host_runtime_is_explicit(self):
+        self.project(
+            {
+                "stack": ["typescript"],
+                "browser_tests": {"runtime": "host", "engines": ["chromium"]},
+            },
+            {"test:browser": "run-tests"},
+        )
+        self.assertEqual(CONFIG.detect(self.root)["runtime"], "host")
+
     def test_declared_capability_cannot_silently_skip_a_missing_script(self):
         self.project(
             {"stack": ["typescript"], "browser_tests": {"engines": ["chromium"]}}
@@ -127,6 +138,7 @@ class BrowserConfigTests(unittest.TestCase):
             {"artifacts": ["/tmp/results"]},
             {"artifacts": ["results\n.env"]},
             {"enginies": ["chromium"]},
+            {"runtime": "invalid"},
             "invalid",
         ]
         for settings in invalid:

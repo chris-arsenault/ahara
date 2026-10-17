@@ -1,0 +1,22 @@
+name: Set up browser runtime
+description: Prepare matching Playwright browsers for shared or repository-owned test orchestration.
+inputs:
+  directory:
+    description: Repository-relative package directory containing Playwright.
+    default: .
+  engine:
+    description: Browser engine to prepare.
+    default: chromium
+  runtime:
+    description: Container by default, or host for repository-owned backend stacks.
+    default: container
+runs:
+  using: composite
+  steps:
+    - name: Prepare Playwright environment
+      shell: bash
+      env:
+        BROWSER_DIRECTORY: ${{ inputs.directory }}
+        BROWSER: ${{ inputs.engine }}
+        BROWSER_RUNTIME: ${{ inputs.runtime }}
+      run: node "$GITHUB_ACTION_PATH/run.mjs" "$BROWSER_DIRECTORY" "$BROWSER" setup "$BROWSER_RUNTIME"

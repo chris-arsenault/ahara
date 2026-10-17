@@ -70,40 +70,41 @@ after the browser matrix for projects that enable it.
 Every project must have a `platform.yml` in the repo root:
 
 ```yaml
-project: <name>          # Project key (reporting, concurrency groups, migrations)
-prefix: <prefix>         # AWS resource prefix (usually same as project)
-stack:                   # Declares which lint/build/deploy steps to run
-  - rust                 # cargo clippy, rustfmt, cargo-lambda build
-  - typescript           # pnpm eslint, tsc, pnpm build
-  - python               # ruff check, ruff format, scripts/build-lambda.sh
-  - terraform            # terraform fmt, terraform apply
-  - vendor               # third-party/upstream-image Compose config validation
-  - nix                  # docker-build of ci/Dockerfile.check: flake evaluate + VM tests
-rust_dir: backend        # Optional source-root override when auto-detection is ambiguous
+project: <name> # Project key (reporting, concurrency groups, migrations)
+prefix: <prefix> # AWS resource prefix (usually same as project)
+stack: # Declares which lint/build/deploy steps to run
+  - rust # cargo clippy, rustfmt, cargo-lambda build
+  - typescript # pnpm eslint, tsc, pnpm build
+  - python # ruff check, ruff format, scripts/build-lambda.sh
+  - terraform # terraform fmt, terraform apply
+  - vendor # third-party/upstream-image Compose config validation
+  - nix # docker-build of ci/Dockerfile.check: flake evaluate + VM tests
+rust_dir: backend # Optional source-root override when auto-detection is ambiguous
 typescript_dir: apps/web # Optional source-root override for repos with several package.json files
-browser_tests:           # Optional overrides; test:browser is detected automatically
+browser_tests: # Optional overrides; test:browser is detected automatically
   engines: [chromium, firefox, webkit]
+  runtime: container # Use host for repository-owned Docker/backend harnesses
   artifacts: [apps/web/test-results/, apps/web/playwright-report/]
-migrations: db/migrations  # Optional — enables run-migrations step
-truenas: true            # Optional — enables Docker + Komodo deploy
-truenas_images: false    # Optional — skip GHCR image build for upstream-image Compose stacks
+migrations: db/migrations # Optional — enables run-migrations step
+truenas: true # Optional — enables Docker + Komodo deploy
+truenas_images: false # Optional — skip GHCR image build for upstream-image Compose stacks
 truenas_compose_path: compose.yaml # Optional — Compose file path for TrueNAS deploy
 truenas_compose_check_paths: # Optional — additional Compose files to lint
   - compose.yaml
-truenas_roles_anywhere:  # Optional — AWS identities for TrueNAS workloads
+truenas_roles_anywhere: # Optional — AWS identities for TrueNAS workloads
   backup:
     env_prefix: AWS_RA_BACKUP
-images:                  # Optional — multi-image TrueNAS deploy
-  - api                  # Builds api/Dockerfile → ghcr.io/.../project/api:sha
-  - web                  # Builds web/Dockerfile → ghcr.io/.../project/web:sha
+images: # Optional — multi-image TrueNAS deploy
+  - api # Builds api/Dockerfile → ghcr.io/.../project/api:sha
+  - web # Builds web/Dockerfile → ghcr.io/.../project/web:sha
 content_addressed_images: # Optional — skip rebuilding when the component tree is unchanged
-  - toolset              # Must also be in images; must not receive rust binaries
-rust_artifacts:          # Required if 'rust' in stack — explicit declaration of build outputs
-  lambdas:               # Cargo bin names; built via cargo-lambda → target/lambda/<bin>/bootstrap (terraform consumes)
+  - toolset # Must also be in images; must not receive rust binaries
+rust_artifacts: # Required if 'rust' in stack — explicit declaration of build outputs
+  lambdas: # Cargo bin names; built via cargo-lambda → target/lambda/<bin>/bootstrap (terraform consumes)
     - my-lambda
-  binaries:              # Cargo bin → image dir mapping; built via cargo build → <image>/dist/<bin> (docker consumes)
+  binaries: # Cargo bin → image dir mapping; built via cargo build → <image>/dist/<bin> (docker consumes)
     - { bin: my-server, image: backend }
-observability:           # Optional — deploy product-owned Grafana dashboards after the app deploys
+observability: # Optional — deploy product-owned Grafana dashboards after the app deploys
   dashboards:
     path: observability/dashboards
     folder_uid: my-product
@@ -120,12 +121,12 @@ lifecycle and concurrency settings in the product repository. The shared runner
 does not parse Playwright or Vitest configuration. Instead, the detected
 TypeScript package exposes these scripts:
 
-| Script | Execution |
-|--------|-----------|
-| `test:browser` | Required to enable detection; runs in the Playwright container for every engine |
-| `test:browser:verify` | Optional independent host-side checks; runs once, in the first configured engine job |
-| `build` | Required when `test:release` exists; runs on the host before production journeys, including on pull requests |
-| `test:release` | Optional production journeys; runs in the same Playwright environment for every engine |
+| Script                | Execution                                                                                                    |
+| --------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `test:browser`        | Required to enable detection; runs in the declared runtime for every engine                                  |
+| `test:browser:verify` | Optional independent host-side checks; runs once, in the first configured engine job                         |
+| `build`               | Required when `test:release` exists; runs on the host before production journeys, including on pull requests |
+| `test:release`        | Optional production journeys; runs in the same declared runtime for every engine                             |
 
 Each browser script receives `CI=1` and `BROWSER=chromium`, `firefox` or `webkit`.
 The repository maps `BROWSER` into its test runner's engine selection. Its default
@@ -138,7 +139,8 @@ Each engine job has its own checkout. Engine-specific preparation belongs in
 The runtime resolves the installed `playwright` package, directly or through
 `@playwright/test`, and uses the official `v<version>-noble` image. Browsers and
 their OS libraries are already installed; the small shared image adds pnpm
-10.29.3. Tests run as the runner user with the repository bind-mounted, and the
+version declared by the selected package or workspace (10.29.3 when neither
+declares one). Tests run as the runner user with the repository bind-mounted, and the
 temporary container is removed on exit. Servers started by browser scripts or
 runner configuration should run inside that container and be cleaned up by the
 tests. No application credentials are injected into the browser container.
@@ -156,6 +158,32 @@ verifiers, while the browser and production scripts adapt `BROWSER` to Vitest.
 Its independent PDF tools remain product-owned rather than part of the shared
 browser image.
 
+`browser_tests.runtime` defaults to `container`. Set it to `host` when the test
+harness needs Docker, a Rust toolchain or other runner-owned services. Host mode
+installs the selected engine and its system libraries through the repository's
+Playwright CLI, then runs the same package scripts on the runner. Each job owns
+its application startup and cleanup; the shared workflow does not replace real
+backend fixtures with browser mocks.
+
+Repositories with custom deployment or credential-scoped test workflows can
+reuse the full `browser-tests` action with their own configuration, or reuse
+only environment setup after their normal Node, pnpm and dependency steps:
+
+```yaml
+- name: Prepare browser runtime
+  uses: chris-arsenault/ahara/.github/actions/browser-runtime@main
+  with:
+    directory: .
+    engine: chromium
+    runtime: host
+- name: Test repository journeys
+  run: make e2e E2E_INSTALL_BROWSER=0
+```
+
+Existing browser caches, backend services, environments and fixture credentials
+remain owned by that workflow. A custom deploy job must depend on its browser
+job; sharing browser setup alone does not establish that dependency.
+
 Publish the shared workflow and actions before product migrations that remove
 repository-owned browser jobs. Callers reference `@main`, so the shared
 implementation must be available before those migrations land.
@@ -164,14 +192,14 @@ Validate the shared contract and runtime locally from the Ahara repository:
 
 ```bash
 python3 .github/actions/browser-config/test_config.py
-node --test .github/actions/browser-tests/run.test.mjs
+node --test .github/actions/browser-runtime/run.test.mjs
 ```
 
 `rust_artifacts` is mandatory whenever `rust` is in `stack`. Use `rust_artifacts: {}` for rust code with no deployable artifacts (e.g. a library-only crate). The two sub-keys are independent — a project can declare `lambdas`, `binaries`, both, or neither. `truenas: true` no longer implies a Rust binary build; declare `binaries:` if your Docker image needs one.
 
 When `truenas: true` without `images`, a single image is built from the repo root. When `images` is present, each entry is a component directory containing its own `Dockerfile`, pushed to `ghcr.io/chris-arsenault/{project}/{component}:{sha}`.
 
-`content_addressed_images` names images (a subset of `images`) whose build is skipped when nothing in the component directory changed. The workflow tags such images with the git tree hash of their directory (`:t-<tree>`); when that tag already exists in GHCR, it re-points `:{sha}` and `:latest` at the existing image instead of building. Consumers keep pulling `:{sha}` exactly as before — only the image *content* stops churning. This is only valid for self-contained components: the tree hash covers tracked files in the component directory and nothing else, so an image that receives CI-injected artifacts (any `rust_artifacts.binaries` target) is rejected at config time.
+`content_addressed_images` names images (a subset of `images`) whose build is skipped when nothing in the component directory changed. The workflow tags such images with the git tree hash of their directory (`:t-<tree>`); when that tag already exists in GHCR, it re-points `:{sha}` and `:latest` at the existing image instead of building. Consumers keep pulling `:{sha}` exactly as before — only the image _content_ stops churning. This is only valid for self-contained components: the tree hash covers tracked files in the component directory and nothing else, so an image that receives CI-injected artifacts (any `rust_artifacts.binaries` target) is rejected at config time.
 
 `truenas: true` means the repo deploys to TrueNAS through Komodo. Set `truenas_images: false` when that Komodo stack uses upstream images directly and the repo owns only Compose/config files. The workflow deploys the Compose file named by `truenas_compose_path` (default `compose.yaml`), validates every path in `truenas_compose_check_paths`, reads `secret-paths.yml`, and deploys through Komodo, but skips Docker Buildx and GHCR pushes. Use `stack: [vendor]` for these third-party/upstream-image repos. See [TRUENAS-DEPLOY.md](TRUENAS-DEPLOY.md) for full details.
 
@@ -233,6 +261,7 @@ Typical layout:
 Directory names are not hardcoded — the workflow finds `Cargo.toml` and `package.json` wherever they live. The convention of `backend/` and `frontend/` is recommended but not required.
 
 **Other conventions:**
+
 - TypeScript uses pnpm (not npm)
 - The `Makefile` has a `ci` target that mirrors the shared workflow's lint/test steps
 
@@ -343,13 +372,14 @@ The shared workflow handles lint, tests, Qlty, and engineering reporting. Only d
 
 ## Shared Actions Reference
 
-| Action | Purpose |
-|--------|---------|
-| `collect-engineering-report` | Pinned Qlty maintainability scan and report artifacts |
-| `report-build` | Normalizes and ingests checks, tests, coverage, and Qlty output |
-| `governance-check` | Validates workflow against platform.yml stack |
-| `browser-config` | Detects browser scripts and validates engine/artifact settings |
-| `browser-tests` | Runs browser scripts in the installed Playwright version's image |
-| `run-migrations` | Upload and run database migrations |
-| `deploy-truenas` | Docker + Komodo deploy for TrueNAS services |
-| `deploy-grafana-dashboards` | Deploy product-owned Grafana dashboards through the shared Lambda |
+| Action                       | Purpose                                                             |
+| ---------------------------- | ------------------------------------------------------------------- |
+| `collect-engineering-report` | Pinned Qlty maintainability scan and report artifacts               |
+| `report-build`               | Normalizes and ingests checks, tests, coverage, and Qlty output     |
+| `governance-check`           | Validates workflow against platform.yml stack                       |
+| `browser-config`             | Detects browser scripts and validates engine/artifact settings      |
+| `browser-tests`              | Runs browser scripts in the declared container or host runtime      |
+| `browser-runtime`            | Sets up the matching container or explicit host browser environment |
+| `run-migrations`             | Upload and run database migrations                                  |
+| `deploy-truenas`             | Docker + Komodo deploy for TrueNAS services                         |
+| `deploy-grafana-dashboards`  | Deploy product-owned Grafana dashboards through the shared Lambda   |
