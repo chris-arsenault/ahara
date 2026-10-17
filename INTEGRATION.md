@@ -1096,3 +1096,13 @@ exist only once the trust appliance's CA certificate has been committed to
 | `/ahara/machines/profile-arn` | String | ahara-infra (control) |
 | `/ahara/machines/entry-role-arn` | String | ahara-infra (control) |
 | `/ahara/machines/workloads/<prefix>/<name>/role-arn` | String | `machine-role` module in the app repo |
+
+## Scheduled data pipelines
+
+Use the [scheduled pipeline integration guide](docs/data-pipelines.md) for
+scheduled Lambda data processing. Ahara owns registry/job-summary services;
+client Terraform owns workflows, schedules, workers, and registration items.
+Declare the `pipeline` bundle in project admission, enable pipeline discovery in
+`platform-context`, and instantiate `ahara-tf-patterns/modules/pipeline` with
+native ASL. Code CI tests/deploys these resources; EventBridge Scheduler or an
+explicit operator action starts production data processing.

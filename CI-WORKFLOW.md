@@ -33,12 +33,27 @@ For most projects, omitting `with:` is correct. `rust_extra_ci_commands` exists 
 
 The shared workflow reads `platform.yml` and runs the appropriate steps based on the declared stack.
 
+Python Lambda projects provide `scripts/build-lambda.sh`; the existing shared
+Python build step invokes it during an enabled deployment on `main`. That script
+owns packaging only. Frontend builds, Terraform apply, credentials, deployment
+serialization and dashboard publication remain in the shared workflow.
+
+Two optional deployment inputs cover projects using a local shared-module
+checkout or explicit public Terraform values:
+
+- `terraform_patterns_ref`: full lowercase commit SHA of `ahara-tf-patterns`,
+  checked out at `.ahara-tf-patterns` before Terraform deployment. Default empty
+  leaves existing remote module sources unchanged. Ignore this directory in Git.
+- `terraform_variables`: JSON object of Terraform values, passed through a
+  generated temporary `.tfvars.json` file. Default `{}` preserves existing
+  variables. Do not put secrets in this workflow input.
+
 ### What the shared workflow does
 
 1. **Governance check** — validates that required lint/test steps exist (auto-passes when using the shared workflow)
 2. **Rust lint + test** — `cargo clippy -- -D warnings -W clippy::cognitive_complexity`, `cargo fmt --check`, `cargo test` with coverage, plus optional repo-specific extra Rust CI commands (auto-detected from `Cargo.toml` location)
 3. **TypeScript lint + test** — `pnpm install`, `eslint`, `tsc --noEmit`, `vitest` with coverage (auto-detected from `package.json` location)
-4. **Python lint** — `uv sync`, `ruff check`, `ruff format --check` (auto-detected from `Cargo.toml` sibling)
+4. **Python lint** — `uv sync --extra dev`, `ruff check`, `ruff format --check` (Rust directory by default, with optional Python path overrides)
 5. **Terraform lint** — `terraform fmt -check -recursive` in `infrastructure/terraform/`
 6. **Vendor config lint** — `docker compose config` for `stack: [vendor]` repos
 7. **Nix checks** — `docker build` of `ci/Dockerfile.check` (flake evaluate + VM test targets) for `stack: [nix]` repos; no nix installer on the runner. VM tests must be single-machine and KVM-free so they complete under TCG emulation
@@ -81,6 +96,8 @@ stack: # Declares which lint/build/deploy steps to run
   - nix # docker-build of ci/Dockerfile.check: flake evaluate + VM tests
 rust_dir: backend # Optional source-root override when auto-detection is ambiguous
 typescript_dir: apps/web # Optional source-root override for repos with several package.json files
+python_dir: backend # Optional Python package root; defaults to the Rust directory
+python_source_dir: src/ # Optional Ruff target relative to python_dir; defaults to src/
 browser_tests: # Optional overrides; test:browser is detected automatically
   engines: [chromium, firefox, webkit]
   runtime: container # Use host for repository-owned Docker/backend harnesses
@@ -235,7 +252,7 @@ more than one candidate at the same depth.
 
 - **Rust**: finds the shallowest `Cargo.toml` (typically `backend/`)
 - **TypeScript**: finds the shallowest `package.json` outside `node_modules` and backend dirs (typically `frontend/`)
-- **Python**: uses the same directory as Rust
+- **Python**: uses the Rust directory unless `python_dir` overrides it; Ruff targets `src/` unless `python_source_dir` overrides it
 - **Terraform**: always `infrastructure/terraform/`
 
 Typical layout:

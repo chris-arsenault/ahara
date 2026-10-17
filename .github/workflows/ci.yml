@@ -11,6 +11,14 @@ on:
         description: Optional repo-root shell commands for additional Rust CI checks inside the shared job
         type: string
         default: ""
+      terraform_patterns_ref:
+        description: Optional full ahara-tf-patterns commit to check out at .ahara-tf-patterns
+        type: string
+        default: ""
+      terraform_variables:
+        description: Optional Terraform variable values as a JSON object (no secrets)
+        type: string
+        default: "{}"
     secrets:
       OIDC_ROLE:
         required: true
@@ -83,10 +91,18 @@ jobs:
         id: config
         env:
           BROWSER_CONFIG: ${{ needs.browser-config.outputs.config }}
+          TERRAFORM_PATTERNS_REF: ${{ inputs.terraform_patterns_ref }}
+          TERRAFORM_VARIABLES: ${{ inputs.terraform_variables }}
         run: |
           set -euo pipefail
           python3 << 'PYEOF'
-          import yaml, os, json
+          import yaml, os, json, re
+          patterns_ref = os.environ.get("TERRAFORM_PATTERNS_REF", "")
+          if patterns_ref and not re.fullmatch(r"[a-f0-9]{40}", patterns_ref):
+              raise SystemExit("terraform_patterns_ref must be a full lowercase commit SHA")
+          terraform_variables = json.loads(os.environ.get("TERRAFORM_VARIABLES", "{}"))
+          if not isinstance(terraform_variables, dict):
+              raise SystemExit("terraform_variables must be a JSON object")
           with open("platform.yml") as f:
               cfg = yaml.safe_load(f)
           stack = cfg.get("stack", [])
@@ -241,11 +257,12 @@ jobs:
                   ts_dir = os.path.dirname(sorted(pkg_jsons, key=lambda p: p.count('/'))[0]) or '.'
               else:
                   ts_dir = 'frontend'
-              # Python uses same dir as Rust (both live in backend/)
-              python_dir = rust_dir
+              python_dir = cfg.get('python_dir', rust_dir)
+              python_source_dir = cfg.get('python_source_dir', 'src/')
               f.write(f"rust_dir={rust_dir}\n")
               f.write(f"typescript_dir={ts_dir}\n")
               f.write(f"python_dir={python_dir}\n")
+              f.write(f"python_source_dir={python_source_dir}\n")
               images = cfg.get('images', [])
               if images:
                   f.write(f"images={json.dumps(images)}\n")
@@ -445,12 +462,12 @@ jobs:
       - name: Lint backend
         if: steps.config.outputs.has_python == 'true'
         working-directory: ${{ steps.config.outputs.python_dir }}
-        run: uv run --extra dev ruff check src/
+        run: uv run --extra dev ruff check "${{ steps.config.outputs.python_source_dir }}"
 
       - name: Lint format backend
         if: steps.config.outputs.has_python == 'true'
         working-directory: ${{ steps.config.outputs.python_dir }}
-        run: uv run --extra dev ruff format --check src/
+        run: uv run --extra dev ruff format --check "${{ steps.config.outputs.python_source_dir }}"
 
       # ── Terraform ───────────────────────────────────────────
 
@@ -662,16 +679,28 @@ jobs:
           project: ${{ steps.config.outputs.project }}
           migrations-dir: ${{ steps.config.outputs.migrations_dir }}
 
+      - name: Check out pinned Terraform patterns
+        if: inputs.deploy && github.ref == 'refs/heads/main' && steps.config.outputs.has_terraform == 'true' && inputs.terraform_patterns_ref != ''
+        uses: actions/checkout@v6
+        with:
+          repository: chris-arsenault/ahara-tf-patterns
+          ref: ${{ inputs.terraform_patterns_ref }}
+          path: .ahara-tf-patterns
+          persist-credentials: false
+
       - name: Terraform deploy
         if: inputs.deploy && github.ref == 'refs/heads/main' && steps.config.outputs.has_terraform == 'true'
         env:
           STATE_BUCKET: ${{ secrets.STATE_BUCKET }}
+          TERRAFORM_VARIABLES: ${{ inputs.terraform_variables }}
         run: |
+          python3 -c 'import json, os; from pathlib import Path; Path(os.environ["RUNNER_TEMP"], "ahara.tfvars.json").write_text(json.dumps(json.loads(os.environ["TERRAFORM_VARIABLES"])))'
           terraform -chdir=infrastructure/terraform init -reconfigure \
             -backend-config="bucket=${STATE_BUCKET}" \
             -backend-config="region=us-east-1" \
             -backend-config="use_lockfile=true"
-          terraform -chdir=infrastructure/terraform apply -auto-approve
+          terraform -chdir=infrastructure/terraform apply -auto-approve \
+            -var-file="${RUNNER_TEMP}/ahara.tfvars.json"
 
       # ── TrueNAS deploy (Docker + Komodo) ────────────────────
 
