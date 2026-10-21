@@ -44,7 +44,7 @@ jobs:
     name: Browser (${{ matrix.engine }})
     needs: [browser-config]
     if: needs.browser-config.outputs.enabled == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
     strategy:
