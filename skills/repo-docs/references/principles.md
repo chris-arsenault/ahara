@@ -72,3 +72,12 @@ Every architectural decision with real alternatives gets a single file under `do
 - Substantive documentation reorganizations tied to a release MAY appear as a single bullet under a final "Documentation" subsection. Small doc tweaks, typos, formatting, link updates, internal refactors, dependency bumps, and CI config changes DO NOT appear.
 
 **Why:** Common Changelog (the stricter sibling of Keep a Changelog) prescribes this exact tone. Auto-generated commit-log changelogs are noisy because commits target a different audience than the changelog. Small doc/typo/CI entries waste reader attention on changes that did not change product behavior.
+
+## 9. Plans are working copies; parameters live in code
+
+- A plan file (`docs/*-PLAN.md`, a working design, a sulion plan document) is the working copy of an open plan, at the fidelity its author needed while deciding: provenance, measurements, sweeps, open questions.
+- The last step of a plan moves what is durable into `docs/<topic>.md`, an ADR or the backlog, at that file's lower fidelity (the mechanism and what it changes, not how the number was reached), then deletes the plan file and every reference to it. A repo holds plan files only for plans still open.
+- Parameter lists, thresholds, coefficient tables and high/middle/low sweeps live only in code, declared so a reader finds them as easily as in a table (one labelled declaration per control).
+- When code and durable documentation disagree, delete the documentation's claim. Equalizing is almost never the fix; the next change would desynchronize them again.
+
+**Why:** Equalized tables rot the moment a value is retuned, and a reader who needs the value needs the code anyway. Appending corrections and review records to a closed plan turns a decision record into an unbounded log nobody reads, and hides the one durable thing (the decision) among the scaffolding that produced it.

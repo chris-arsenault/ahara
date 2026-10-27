@@ -78,6 +78,26 @@ When the task is "apply this to a repo," do not stop at additive scaffolds. The 
 - Do NOT phrase items as negations ("X is not supported"). Phrase as positive future-state behavior ("Add X").
 - Do NOT use GitHub Issues or Projects as the canonical backlog when the repo has AI-agent readers. Agents cannot read external systems reliably; `docs/backlog.md` is discoverable from a checkout.
 
+**Plan files (`docs/*-PLAN.md`, working designs, sulion plan documents):**
+- A plan file is the working copy of an open plan. Do NOT edit it after its
+  plan closes; do NOT append review records, corrections or "status:
+  delivered" headers to it.
+- The last step of every plan moves its durable content into `docs/<topic>.md`,
+  an ADR or the backlog, at that file's fidelity, then DELETES the plan file and
+  every reference to it. Only open plans have files in the repo.
+- Do NOT cite a plan file from durable documentation as the record of a
+  mechanism; move the mechanism's description into the durable file.
+
+**Parameters and values (any `docs/` file):**
+- Do NOT write parameter lists, threshold values, coefficient tables, value
+  sweeps, high/middle/low configurations, measurement tables or provenance
+  chains in durable documentation. Those belong in code, declared so a reader
+  finds them as easily as in a table (one labelled declaration per control).
+- Durable docs describe the mechanism and what it changes on the map, at lower
+  fidelity than the plan that designed it.
+- When code and durable documentation disagree, delete the documentation's
+  claim. Equalizing the two is almost never the fix.
+
 ## Quick reference
 
 | Need | File | Pattern |
@@ -90,6 +110,9 @@ When the task is "apply this to a repo," do not stop at additive scaffolds. The 
 | CI / build / dev rule | `AGENTS.md` Critical Rules | Imperative bullet |
 | Claude-specific instruction | `CLAUDE.md` after `@AGENTS.md` | Thin Claude-specific section |
 | Trade-off justification for a baked-in rule | `docs/adr/NNNN-…md` | New ADR; link from `docs/architecture.md` |
+| Parameter values, thresholds, sweeps | source code | One labelled declaration per control; docs name the mechanism only |
+| A closed plan's durable content | `docs/<topic>.md` / ADR / backlog | Move at the target's fidelity; then delete the plan file and its references |
+| Doc number disagrees with code | the doc | Delete the claim; do not equalize |
 | Generate a fresh ADR file | `scripts/new-adr.sh <slug>` | Picks next number, writes frontmatter, updates index |
 
 ## Meta-repos

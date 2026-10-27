@@ -34,16 +34,23 @@ and [plan-grammar.md](references/plan-grammar.md) for the durable plan format.
 1. Recover relevant prior decisions and existing plan state before starting another plan.
    Read applicable repository instructions, then the sources needed for the requested work.
    Identify affected producers, consumers, reusable components, and material gaps.
-2. Recommend the smallest complete design that satisfies the requested behavior, durability,
-   safety, and ownership boundaries. New abstractions, dependencies, or harnesses need a
-   concrete requirement or consumer. Explain meaningful alternatives and trade-offs in the
-   proposal; do not create scaffolds to make the plan look complete.
-3. Record settled decisions, provisional assumptions, and deferred decisions separately.
+2. Recommend the simplest complete design for the requested user and domain behavior,
+   durability, safety, and ownership boundaries. Use the existing platform and named reference
+   design as the starting structure. For an added abstraction, persistence layer or stronger
+   execution guarantee, identify the current requirement the simpler approach cannot satisfy
+   and explain its cost. Product completeness is measured by behavior; implementation
+   generality and recovery precision are separate choices.
+3. Record user requirements with their source, explicitly agreed decisions, agent-derived
+   implementation choices, provisional assumptions, and deferred decisions separately.
    Ask only about user-owned choices that block the work being planned. A later choice can
    remain open when its owner, evidence trigger, and affected milestone are explicit. Use
    prior answers; do not require a ceremonial confirmation of a clear request.
-4. Write coherent milestones with acceptance conditions and proportionate evidence. Include
-   enough scope and interface detail to assess the design, but defer step-level expansion.
+4. Write coherent milestones with behavior-based acceptance conditions and proportionate
+   evidence. Distinguish required behavior from checks of the selected implementation, so
+   replacing a mechanism can revise its checks while preserving the user's outcome. Let real
+   domain operations establish shared interfaces before generalizing supporting machinery.
+   Include enough scope and interface detail to assess the design, but defer step-level
+   expansion.
    Put the plan and subsequent expansions in one existing working document, or create
    `<FEATURE>-PLAN.md` at the repository's conventional location.
 5. Publish or reconcile the matching Sulion plan with future implementation phases pending.

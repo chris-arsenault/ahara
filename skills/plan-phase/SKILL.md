@@ -30,12 +30,17 @@ correct plan, retrieve prior decisions, and reuse an existing expansion. Read th
 [plan contract](../feature-start/references/plan-grammar.md) for the document fields and
 adaptation rules.
 
-Read the selected milestone, relevant decisions, predecessor results, and downstream consumer
-contracts. Other phases are valid context; expanding or implementing them remains outside a
-single-phase request. Verify current sources rather than assuming the old plan is still exact.
+Read the selected milestone, the sources of its requirements and design choices, predecessor
+results, and downstream consumer contracts. Identify which acceptance conditions describe user
+behavior and which check an agent-selected mechanism. Reconcile unnecessary mechanisms with the
+adaptation rules before expanding their implementation. Other phases are valid context;
+expanding or implementing them remains outside a single-phase request. Verify current sources
+rather than assuming the old plan is still exact.
 
-Decompose into coherent, reviewable outcomes. Keep implementation, wiring, documentation, and
-verification together when they establish one outcome. Split for a real dependency, decision,
+Decompose into coherent, reviewable domain outcomes using the existing platform and reference
+structure. New supporting machinery needs a current consumer the simpler approach cannot serve.
+Keep implementation, wiring, documentation, and verification together when they establish one
+outcome. Split for a real dependency, decision,
 or review boundary. Preserve required architecture and durability; do not add abstractions or
 test harnesses to fill template fields.
 
@@ -52,14 +57,14 @@ continue within that authorization.
 This section governs verification for planning and execution. Match evidence to the claim,
 risk, and actual consumer rather than to file extension or a per-step test requirement.
 
-| Change | Useful evidence |
-| --- | --- |
-| Code behavior or bug fix | Prefer a focused regression test that fails for the relevant behavior before the fix and passes afterward. Reuse existing coverage when sufficient. |
-| New code | Exercise its real contract and material failure cases. An initial missing symbol can explain a compile failure; the completed test must detect incorrect behavior. |
-| Behavior-preserving refactor | Existing tests pass before and after. Add characterization coverage only for a material gap. |
-| Documentation or plans | Review accuracy, completeness, examples, and affected links against their sources. Use applicable existing validators. No artificial red gate or tests that merely assert wording, headings, or file existence. |
-| Skills or prompts | Check structure and consistency. For substantive behavioral changes, trial representative tasks on the models used when available and authorized; inspect their decisions and artifacts. A metadata validator does not establish agent behavior. |
-| Configuration, schemas, executable examples, or generated output | Use checks for the actual consumer: validation, builds, behavior checks, or a safe dry run as appropriate. Add regression coverage for a meaningful contract. |
+| Change                                                           | Useful evidence                                                                                                                                                                                                                                  |
+| ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Code behavior or bug fix                                         | Prefer a focused regression test that fails for the relevant behavior before the fix and passes afterward. Reuse existing coverage when sufficient.                                                                                              |
+| New code                                                         | Exercise its real contract and material failure cases. An initial missing symbol can explain a compile failure; the completed test must detect incorrect behavior.                                                                               |
+| Behavior-preserving refactor                                     | Existing tests pass before and after. Add characterization coverage only for a material gap.                                                                                                                                                     |
+| Documentation or plans                                           | Review accuracy, completeness, examples, and affected links against their sources. Use applicable existing validators. No artificial red gate or tests that merely assert wording, headings, or file existence.                                  |
+| Skills or prompts                                                | Check structure and consistency. For substantive behavioral changes, trial representative tasks on the models used when available and authorized; inspect their decisions and artifacts. A metadata validator does not establish agent behavior. |
+| Configuration, schemas, executable examples, or generated output | Use checks for the actual consumer: validation, builds, behavior checks, or a safe dry run as appropriate. Add regression coverage for a meaningful contract.                                                                                    |
 
 For mixed work, test changed behavior and review the prose. A filesystem or text assertion is
 useful when it protects a real consumed contract, not merely because an instruction was edited.

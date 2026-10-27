@@ -18,11 +18,13 @@ Sulion retrieval for missing history. Reconcile current sources and unfinished w
 editing. If the expansion is missing or stale, use plan-phase to prepare or refresh it first.
 
 The [plan contract](../feature-start/references/plan-grammar.md) defines scope, decision
-ownership, durable state, and adaptation. Preserve the agreed outcome, constraints, and
-acceptance criteria. Change implementation details when current evidence justifies it:
-reuse existing components, adjust files, combine steps, or reorder independent work. Record
-material changes in the plan and reconcile the Sulion steps. Do not erase requirements or
-expand authority. Stop dependent work at an unresolved user-owned decision; continue independent
+ownership, durable state, and adaptation. Preserve user-required behavior, data guarantees and
+explicitly agreed boundaries. Compare the planned mechanism with the existing platform and named
+reference structure. Simplify or remove agent-derived machinery, and revise its acceptance checks,
+when a simpler approach satisfies those requirements. Implement actual domain behavior before
+generalizing its support code. Record material changes and their rationale in the plan and
+reconcile the Sulion steps. Keep execution within its authorized scope.
+Stop dependent work at an unresolved user-owned decision; continue independent
 authorized work when useful.
 
 For each outcome, choose the useful baseline evidence, make the smallest complete change, and
@@ -37,8 +39,9 @@ For a multi-step prerequisite, follow the nested-branch procedure in the shared 
 A branch tracks work; it does not authorize unrelated repairs or bypass a permission or
 credential boundary. Diagnose failures from actual evidence before deciding what to repair.
 
-Continue until the milestone's outcome and required verification are complete, not just its
-first implementation. Run or reuse the applicable final checks, review the final diff against
+Continue until the milestone's required user/domain behavior and proportionate checks are
+complete. Extra generality or stronger execution guarantees need their own demonstrated reason.
+Run or reuse the applicable final checks, review the final diff against
 the agreed scope, and record the results. If completion is blocked, leave an accurate blocked
 state and report the exact missing decision, evidence, or access.
 

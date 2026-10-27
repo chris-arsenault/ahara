@@ -13,12 +13,15 @@ Include what the work needs; omit empty sections.
 - **Context / reuse map:** source-of-truth paths, relevant producers and consumers, reuse
   choices, and evidence supporting material assumptions. Retrieved history records intent;
   current sources establish implementation facts.
-- **Decisions:** settled choices with their basis; provisional assumptions with how they
-  will be checked; deferred choices with an owner, evidence trigger, and affected milestone.
+- **Decisions:** user requirements with source references; explicitly agreed choices;
+  agent-derived implementation choices with their rationale; provisional assumptions with
+  how they will be checked; deferred choices with an owner, evidence trigger, and affected
+  milestone.
   Include the rationale and alternatives needed to review a proposal. Link durable ADRs
   when they exist; do not create one for every routine choice.
-- **Milestones:** numbered M0…Mn, each with scope, dependencies, an acceptance condition, and
-  evidence that will establish it. Conditional milestones name the condition.
+- **Milestones:** numbered M0…Mn, each with scope, dependencies, required observable behavior,
+  and evidence that will establish it. Identify checks derived from an implementation choice
+  separately from user-required acceptance. Conditional milestones name the condition.
 - **Sulion mapping:** root plan ID, milestone phase IDs, and expansion/step IDs once created.
 - **Current state:** completed work, remaining work, blockers, and the next action.
 
@@ -58,15 +61,21 @@ appropriate evidence; an artificial failing baseline is not required.
 
 ## Adaptation and provenance
 
-The user request and settled constraints govern scope. Current evidence may invalidate a
-planned implementation. The executor may reuse a newly discovered helper, change file locations,
-reorder independent work, combine related edits, or skip an already-satisfied step without
-reapproval when the outcome and acceptance criteria remain intact. Record the reason and
-evidence, update dependencies and Sulion mappings, and preserve the history of completed steps.
+The user request and explicitly agreed constraints govern scope. Plans and ADRs record design
+choices; their existence does not establish that every choice is a user requirement. Authorization
+to execute a plan authorizes work toward the requested outcome, with implementation choices
+remaining revisable within that scope.
 
-Do not silently weaken acceptance, erase a requirement, change user-owned behavior, or expand
-authority. Surface such changes for a decision. Preserve pending user decisions through resume;
-do not treat assumptions, status labels, or elapsed time as approval.
+Current evidence may invalidate a mechanism or show that its guarantees exceed the requirement.
+The executor may simplify or remove agent-derived mechanisms and revise their acceptance checks
+without reapproval when required user behavior, data guarantees and agreed boundaries remain
+intact. This includes generality, persistence and recovery precision. Record the reason and
+evidence, update dependencies and Sulion mappings, and retain prior decisions as history rather
+than active instructions. Preserve useful completed work and report what still needs adaptation.
+
+Changes to user-required behavior, explicitly agreed architectural boundaries or execution
+authority need a decision. Preserve pending user decisions through resume; assumptions, status
+labels and elapsed time do not establish approval.
 
 Evidence records identify the check or reviewed source, its actual result, and relevant limits.
 For runtime checks, include the target or revision when it matters. Before a handoff, record

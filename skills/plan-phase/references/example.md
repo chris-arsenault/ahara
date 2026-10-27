@@ -49,6 +49,20 @@ check passes. Finish only the authorized milestone.
 If M2 instead depends on a user decision after a benchmark, record that owner and trigger and
 leave M2 pending. Do not invent the answer or block independent M1 work.
 
+## Revise an implementation guarantee
+
+A batch-import feature plan requires durable imported data, visible progress and
+safe retry. An agent added exact recovery inside every parser operation as an
+implementation acceptance condition. The existing importer already supports
+atomic completed batches and deterministic reruns of an unfinished batch.
+
+Read the requirement source and classify exact parser continuation as an
+agent-derived choice. Reuse batch-boundary recovery, revise the mechanism-specific
+acceptance check and record the reason. Preserve imported data, progress and retry
+semantics. Execution authorization keeps those user behaviors in scope while
+allowing this implementation simplification. Exercise a real interrupted import
+and check its durable result; a generalized replay engine adds no required behavior.
+
 ## Trial substantive skill or prompt changes
 
 Static validation catches metadata, broken references, and inconsistent instructions. To
@@ -64,18 +78,18 @@ For execution trials, supply a qualifying existing plan and selected milestone. 
 the workflow actually runs on when available; report which models and scenarios were exercised. Do not claim a
 cross-model result from static review or a single-model walkthrough.
 
-| Scenario | What to inspect in the result |
-| --- | --- |
+| Scenario                                                                                                                                         | What to inspect in the result                                                                                                                                                                                                    |
+| ------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Antropy: "I left it going unattended for an hour and it crashed the browser tab. Probably OOM; fix that next." The previous rebuild is complete. | Neither skill selected merely to track a separate repair. Investigate from evidence, treat OOM as a hypothesis, use direct Sulion tracking if needed. Reconsider feature planning only if findings establish architectural work. |
-| Small addition: add a filter using an existing table's filtering pattern | Neither skill; implement and verify the requested behavior without a feature-plan document or milestone expansion. |
-| Standalone documentation correction | Neither skill; accurate instructions and applicable existing validation, no manufactured red test or new framework. |
-| Standalone pagination defect plus documentation | Neither skill; a meaningful regression exercises the actual defect and documentation is reviewed. |
-| New persistence subsystem or complex ownership refactor with architectural decisions | Feature-start establishes the contract and milestones; plan-phase expands the imminent milestone when execution is authorized. |
-| Documentation or bug-fix step within a supplied substantial feature milestone | Plan-phase expands the selected milestone; evidence fits each change, without artificial red tests for prose. |
-| "Break down the next phase" in an ordinary repair tracking plan | Neither skill; read the phase and refine the existing tracking directly without inventing a feature contract. |
-| Resume with completed work and a newly found helper | Correct Sulion attachment, dependency context read, valid prior work retained, justified plan adaptation persisted. |
-| Deferred user decision | Decision owner and evidence trigger retained; independent work proceeds; dependent work waits. |
-| Unrelated failing gate | Failure reported accurately; no unauthorized repair or false completion; any authorized prerequisite uses a nested branch. |
+| Small addition: add a filter using an existing table's filtering pattern                                                                         | Neither skill; implement and verify the requested behavior without a feature-plan document or milestone expansion.                                                                                                               |
+| Standalone documentation correction                                                                                                              | Neither skill; accurate instructions and applicable existing validation, no manufactured red test or new framework.                                                                                                              |
+| Standalone pagination defect plus documentation                                                                                                  | Neither skill; a meaningful regression exercises the actual defect and documentation is reviewed.                                                                                                                                |
+| New persistence subsystem or complex ownership refactor with architectural decisions                                                             | Feature-start establishes the contract and milestones; plan-phase expands the imminent milestone when execution is authorized.                                                                                                   |
+| Documentation or bug-fix step within a supplied substantial feature milestone                                                                    | Plan-phase expands the selected milestone; evidence fits each change, without artificial red tests for prose.                                                                                                                    |
+| "Break down the next phase" in an ordinary repair tracking plan                                                                                  | Neither skill; read the phase and refine the existing tracking directly without inventing a feature contract.                                                                                                                    |
+| Resume with completed work and a newly found helper                                                                                              | Correct Sulion attachment, dependency context read, valid prior work retained, justified plan adaptation persisted.                                                                                                              |
+| Deferred user decision                                                                                                                           | Decision owner and evidence trigger retained; independent work proceeds; dependent work waits.                                                                                                                                   |
+| Unrelated failing gate                                                                                                                           | Failure reported accurately; no unauthorized repair or false completion; any authorized prerequisite uses a nested branch.                                                                                                       |
 
 Compare outcomes, unnecessary artifacts, scope, useful verification, recovery, and completion.
 Use tool traces and produced artifacts as evidence; do not score heading counts, exact wording,
