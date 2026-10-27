@@ -5,10 +5,10 @@
 A meta-harness is the environment around individual agent sessions: tools for
 recovering context, retaining work state, supervising activity, and accessing
 capabilities. Its value is continuity and dependable action across sessions,
-not a larger prompt or another model deciding everything.
+with less context reconstruction and clearer human supervision.
 
-Use the environment already available. Sulion is a concrete implementation;
-the responsibilities also apply to other clients and toolsets.
+These responsibilities can be served by independent tools. Use the environment
+already available and add capabilities only for demonstrated gaps.
 
 ## Externalize What a Session Should Not Reconstruct
 
@@ -16,7 +16,7 @@ the responsibilities also apply to other clients and toolsets.
 | --- | --- |
 | Durable history and targeted retrieval | Recover an earlier request or decision with its source instead of asking the user to repeat it |
 | Structural source navigation | Find the owning implementation and consumers with visible freshness and confidence |
-| Published work state | Let people and later sessions see intent, progress, blockers, and the next action |
+| Shared work state | Let people and later sessions see intent, progress, blockers, and the next action |
 | Capability and credential controls | Execute authorized operations without copying secrets or inventing alternate access paths |
 | Activity and review surfaces | Let the user inspect and redirect work without following every tool call |
 | Persistent execution environments | Preserve running work where supported; distinguish terminal survival from recoverable task state |
@@ -26,64 +26,63 @@ application's authoritative data. Avoid duplicating either in a second control
 system. Discover tool capabilities through current help; their names and
 availability vary by environment.
 
-## Why Published Plans Matter
+## Make Plans Shared and Durable
 
-A private task list helps the current agent. A published plan makes the work
-legible outside that conversation. Sulion plans are durable, repository-scoped
-phase summaries that survive terminal exit and can be attached to other
-sessions. They are a compact shared account of the work, not a transcript of
-reasoning or proof of completion.
+A shared plan preserves the work's intent beyond one conversation. Keep one
+discoverable record of the outcome, sourced boundaries, principles, assumptions,
+phases, and current state. A maintained document or task record can be enough;
+choose storage and tooling according to collaboration and recovery needs.
 
-The useful content is the outcome, sourced boundaries, principles, assumptions,
-and honest phase state. Expand the next phase when its evidence is current.
-Avoid detailed speculative steps for distant phases.
+Separate user requirements and corrections from agent proposals. Preserve their
+sources and reasons so a later session can reassess an implementation choice
+without mistaking it for an agreed constraint. Keep enough revision history to
+understand consequential changes in direction.
 
-Sulion returns the applicable outcome and boundaries with every plan command.
-This restores important context during ordinary progress updates instead of
-depending on the agent to remember an earlier instruction. Branch plans retain
-live ancestor guidance, so a prerequisite cannot quietly escape the parent
-scope. History preserves changes to guidance and progress.
+Expand the next phase when its evidence is current. Keep distant phases at the
+level of outcomes and dependencies. Follow the project's planning threshold;
+the availability of planning tools does not make every task a substantial plan.
 
-Read and apply these reminders. Displaying a boundary does not enforce it.
-Source labels distinguish user requirements, corrections, and agent proposals;
-the service does not certify that the attribution is true.
+## Bring Boundaries Back Into Active Work
 
-## Use Sulion Plans When Available
+Storing a constraint does not ensure that the next session will encounter it.
+Make the outcome and applicable boundaries visible when work starts, resumes,
+changes phase, or receives a correction. Tool responses can supply this context;
+otherwise, retrieve the current guidance at those transitions. Keep reminders
+focused and link to the source when deeper context matters.
 
-Read `sulion plan help` before the first plan command in a session. Follow the
-repository's planning threshold; simple tasks do not need an elaborate feature
-plan merely because the tool exists.
+For a prerequisite that needs its own plan, retain the parent relationship,
+the blocked work, and the parent's current boundaries. Local guidance adds
+detail within that scope. Return to the parent when the prerequisite is
+resolved and reassess the next action against the original outcome.
 
-| Situation | Action |
-| --- | --- |
-| Start or resume work | Read `sulion plan current`; if unattached, inspect `sulion plan list --all` and `attach` the relevant plan before creating a duplicate |
-| New substantial work | Use `start` with an outcome, sourced boundaries, and coherent phases |
-| Evidence or direction changes | Update guidance and affected phases; retain still-applicable boundaries |
-| Phase progresses | Use `phase set` with the actual status and a useful note |
-| A multi-step prerequisite blocks a phase | Mark it blocked, `branch` from that phase, resolve the authorized work, then `return --completed` |
-| Need to recover context | Use `current` for full guidance, `tree` for ancestry, and `history` for changes |
-| Outcome is established | Use `close --completed` after required work and evidence are complete |
+Apply the guidance to the next decision. Displayed reminders and source labels
+support judgment; they do not enforce boundaries or establish that an attribution
+is accurate. When corrected, update affected steps while retaining requirements
+that still apply.
 
-Guidance updates replace supplied lists. When adding a correction, retain
-existing applicable entries. Read `current` at phase start, after interruption,
-and when evidence challenges the approach. Verify that the command succeeded;
-an attempted status change is not the resulting state.
+## Make Resumption and Progress Honest
 
-Published phase status and current activity answer different questions.
-`sulion name` identifies the task; `sulion activity` communicates that the
-session is working, blocked, or needs input. A busy terminal can still be
-working on a blocked prerequisite; a quiet terminal can have unfinished work.
+Find the existing plan before creating another account of the same work. On
+resume, reconcile its state with the current artifact and evidence. Preserve
+blockers, unresolved decisions, and a useful next action so continuation does
+not depend on replaying the conversation. Verify that state updates took effect.
+
+Keep task progress separate from session activity. Running, waiting for input,
+and disconnected describe execution; pending, blocked, and complete describe
+work. Neither a live process nor a completed checklist establishes the outcome.
+Close work against evidence and retain unresolved obligations explicitly.
 
 ## Connect Tools Without Loading Their Manuals
 
-In Sulion, `sulion-retrieve` recovers history, `sulion-code` navigates source,
-and `with-cred --` supplies granted credentials to a command. Read each tool's
-help when needed. Include user messages when recovering user intent, inspect
-index freshness when results are uncertain, and respect credential refusals.
+Discover the available retrieval, source navigation, execution, and access
+mechanisms when the task needs them. Read their current contracts. Recover user
+intent from user-authored sources, inspect retrieval coverage and freshness
+when results are uncertain, and respect credential refusals.
 
-In another environment, map these responsibilities to its existing tools.
-Do not introduce a platform migration merely to follow this guide. Improve a
-missing capability only when a recurring failure demonstrates the need.
+Keep entry instructions small: capability, purpose, and route to focused help.
+Maintain operational details with the tool that owns them. Improve a missing
+capability when recurring friction or a required guarantee demonstrates the
+need, using the smallest mechanism that satisfies it.
 
 Evaluate the meta-harness by whether work resumes correctly, corrections remain
 effective, evidence is recoverable, and the user can supervise consequential

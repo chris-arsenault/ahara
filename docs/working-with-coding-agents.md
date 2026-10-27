@@ -86,7 +86,7 @@ corrected repeatedly, so each is paired with the tendency it corrects.
 | [Design Principles](coding-agents/design-principles.md) | Which axioms should a model hold while designing, and which failure mode does each one correct? |
 | [Design as a Conversation Between Peers](coding-agents/collaboration-and-design.md) | How do I work with a model as a product and design peer without writing a complete specification first? |
 | [Preserve Intent Through Long-Running Work](coding-agents/sustained-intent.md) | How do requirements, corrections, and assumptions remain distinct across phases and interruptions? |
-| [Meta-Harness and Tooling Around the Agent](coding-agents/meta-harness.md) | How do shared tooling and Sulion plans make work recoverable and supervision practical? |
+| [Meta-Harness and Tooling Around the Agent](coding-agents/meta-harness.md) | How do supporting tools and shared plans make work recoverable and supervision practical? |
 | [Context Engineering as Information Architecture](coding-agents/context-and-memory.md) | How do documentation, retrieval, source navigation, and information lifecycles keep context useful? |
 | [Just-in-Time Documentation for Agents](coding-agents/jit-documentation.md) | How does the agent discover and read the guidance it needs at the point of action? |
 | [Domain-Native Work Surfaces](coding-agents/domain-native-work.md) | How can agents concentrate on the domain while software owns syntax, storage, and structural rules? |
@@ -136,11 +136,10 @@ without asking me to reconstruct it. Search results need source turns,
 repository scope, index state, and a way to reopen the original context. Source
 navigation needs the same honesty about confidence and fallback behavior.
 
-[Sulion](https://github.com/chris-arsenault/sulion) is my reference
-implementation for most of the tooling in this guide — transcript retrieval,
-structural code navigation, brokered credentials, and published plan state.
-The principle stands without it: agents need to find their prior work and
-current evidence through inspectable interfaces.
+Agents need inspectable interfaces to prior work and current evidence. Shared
+plans retain intent and progress across sessions; targeted retrieval brings
+the relevant sources back into context when work resumes. These capabilities
+can be provided by the tools already available in the working environment.
 
 [Read the context and memory article.](coding-agents/context-and-memory.md)
 

@@ -13,10 +13,10 @@ working across repositories and client environments.
 | Integrating or operating one of my Ahara projects | [Platform integration](INTEGRATION.md) and [platform architecture](docs/architecture.md) |
 | Editing this repository | [Agent instructions](AGENTS.md) and [documentation index](docs/README.md) |
 
-The practice guides are written primarily for agents: concise principles,
-reasons, and decision criteria. Use them with the destination's repositories,
-tools, instructions, and authorization. Tool-specific guidance is conditional
-on that tool being available.
+The practice guides are written primarily for agents: concise, tool-neutral
+principles, reasons, and decision criteria. Apply them through the destination's
+existing capabilities, instructions, and authorization. Operational details
+belong in that environment's tool documentation.
 
 Ahara itself is my personal CI/CD and infrastructure platform. It is not offered
 as a service or a platform for others to join or deploy onto. Its account,
@@ -65,7 +65,7 @@ Deploy: `cd ../ahara-infra && ./scripts/deploy.sh`
 
 ### Tooling in This Repository
 
-- [Documentation conventions](skills/repo-docs/SKILL.md) and Sulion-specific planning skills in `skills/`; use the [meta-harness guide](docs/coding-agents/meta-harness.md) when working with the surrounding tooling
+- [Documentation conventions](skills/repo-docs/SKILL.md) and environment-specific planning skills in `skills/`
 - [Repository line-count snapshot](docs/repository-line-counts.md)
 - `.github/workflows/ci.yml` — shared reusable CI/CD workflow (called by all standard projects)
 - `.github/actions/` — `collect-engineering-report`, `report-build`, `governance-check`, `run-migrations`, `deploy-truenas`

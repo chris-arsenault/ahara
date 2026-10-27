@@ -15,8 +15,11 @@ orchestration scripts, and practice guides.
   require loading the whole collection. Keep anecdotes and research citations
   in the optional human field report. Include examples only when they clarify
   an action or distinction the agent needs.
-- Keep tool-specific guidance conditional on availability, verify its contract,
-  and distinguish implemented behavior from proposed designs.
+- Keep the practice guides and optional field report tool-neutral. Extract
+  organizing concepts and principles; do not reference the owner's personal
+  tools, repositories, commands, or APIs. Keep environment-specific instructions
+  in the separate platform documentation and skills. Distinguish recommended
+  properties from behavior guaranteed by a particular implementation.
 - Practice guidance does not install rules or grant access. The destination
   project's instructions, tools, and authorization govern work there.
 

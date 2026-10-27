@@ -14,7 +14,7 @@ user to translate routine actions or relying on perfect obedience for safety.
 | Permission to access a resource or perform an action | Identity and runtime authorization |
 | Valid inputs and state transitions | Types, schemas, and domain operations |
 | Allowed dependency direction or API path | Build rules, analyzers, or lint |
-| Resumable work and visible progress | Published plans and domain work state |
+| Resumable work and visible progress | Shared plans and domain work state |
 | Evidence that a result works | Tests, observations, and review at the relevant layer |
 
 Make unfamiliar tools discoverable in the entry instructions: name the tool,
@@ -63,6 +63,6 @@ Fix incorrect use of an existing platform mechanism before inventing another.
 A control should reduce the failure and its operational cost without obscuring
 normal behavior.
 
-Use published plans for intent and progress; keep business data in its owning
-domain system. For the surrounding environment and Sulion usage, read
+Use shared plans for intent and progress; keep business data in its owning
+domain system. For continuity across sessions and supporting capabilities, read
 [meta-harness and tooling](meta-harness.md).

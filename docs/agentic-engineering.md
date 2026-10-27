@@ -14,7 +14,7 @@ that subject becomes necessary. The collection is not a startup reading list.
 | Choose the simplest complete design | [Design principles](coding-agents/design-principles.md) |
 | Investigate, recommend, and collaborate with the user | [Collaboration and design](coding-agents/collaboration-and-design.md) |
 | Preserve intent across phases, corrections, and interruptions | [Sustained intent](coding-agents/sustained-intent.md) |
-| Use tooling around the session, especially Sulion plans | [Meta-harness and tooling](coding-agents/meta-harness.md) |
+| Coordinate sessions through shared plans and supporting tools | [Meta-harness and tooling](coding-agents/meta-harness.md) |
 | Recover context and determine which source to trust | [Context and memory](coding-agents/context-and-memory.md) |
 | Design documentation or tool responses for agents | [JIT documentation](coding-agents/jit-documentation.md) |
 | Let agents work in domain concepts and artifacts | [Domain-native work surfaces](coding-agents/domain-native-work.md) |
@@ -32,11 +32,11 @@ behavior while choosing the smallest maintainable mechanism. Keep requirements,
 assumptions, and implementation choices distinguishable. Verify the result at
 the layer where the user experiences it.
 
-Tool-specific guidance is conditional on that tool being available. In
-particular, Sulion commands describe a concrete implementation, not a dependency
-every client must adopt.
+The guides describe tool-neutral concepts and decision criteria. Map them to
+the destination's existing capabilities; consult local tool documentation for
+operational details.
 
 The [original field report](working-with-coding-agents.md) is optional human
 background. It is not required context for using these guides.
-[Ahara integration](../INTEGRATION.md) concerns the owner's personal platform;
-use it only for work on that platform. [Repository front door](../README.md).
+
+[Repository front door](../README.md).

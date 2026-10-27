@@ -6,7 +6,7 @@
 | Agentic engineering: select a guide for the current task | [agentic-engineering.md](agentic-engineering.md) |
 | Sustained intent across phases and sessions | [sustained-intent.md](coding-agents/sustained-intent.md) |
 | Domain-native work surfaces | [domain-native-work.md](coding-agents/domain-native-work.md) |
-| Meta-harness tooling and Sulion plans | [meta-harness.md](coding-agents/meta-harness.md) |
+| Meta-harness tooling and shared plans | [meta-harness.md](coding-agents/meta-harness.md) |
 | Just-in-time documentation for agents | [jit-documentation.md](coding-agents/jit-documentation.md) |
 | Multi-step workflows | [multi-step-workflows.md](coding-agents/multi-step-workflows.md) |
 | Agent system responsibilities and working modes | [agent-responsibilities.md](coding-agents/agent-responsibilities.md) |
