@@ -1,6 +1,10 @@
 # Platform Integration Guide
 
-> **AUDIENCE**: AI agents integrating projects with the platform.
+> **AUDIENCE**: AI agents integrating the owner's projects with the personal
+> Ahara platform. These instructions depend on the owner's infrastructure and
+> access; Ahara is not available for others to adopt as their deployment platform.
+> For practices usable in other environments, start with
+> [agentic engineering](docs/agentic-engineering.md).
 
 ## Where to Find Instructions
 

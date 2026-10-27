@@ -1,5 +1,7 @@
 # What Has Worked for Me When Building Software With Coding Agents
 
+[Agentic engineering practice index](agentic-engineering.md)
+
 I get the best results from coding models when I treat them as temporary
 product managers, designers, architects, engineers, and reviewers rather than
 code generators. I give them outcomes and constraints, require them to study
@@ -82,6 +84,9 @@ corrected repeatedly, so each is paired with the tendency it corrects.
 | [Design Principles](coding-agents/design-principles.md) | Which axioms should a model hold while designing, and which failure mode does each one correct? |
 | [Design as a Conversation Between Peers](coding-agents/collaboration-and-design.md) | How do I work with a model as a product and design peer without writing a complete specification first? |
 | [Context Engineering as Information Architecture](coding-agents/context-and-memory.md) | How do documentation, retrieval, source navigation, and information lifecycles keep context useful? |
+| [Just-in-Time Documentation for Agents](coding-agents/jit-documentation.md) | How does the agent discover and read the guidance it needs at the point of action? |
+| [Multi-Step Workflows That Carry Their Own Context](coding-agents/multi-step-workflows.md) | How can a domain application guide substantial work, retain progress, and support revision? |
+| [Separating Responsibilities in Agent Systems](coding-agents/agent-responsibilities.md) | What belongs to the interface, execution environment, model, memory, skills, and domain system? |
 | [Architecture That Helps Agents Stay Correct](coding-agents/architecture-for-agents.md) | Which architecture and language choices reduce errors and keep work inside a bounded context? |
 | [Tooling, Capabilities, and External Work State](coding-agents/tooling-and-controls.md) | How do agent rules, deterministic controls, secret brokering, and durable plans increase autonomy safely? |
 | [Verification and Harness Improvement](coding-agents/verification-and-improvement.md) | How do I match evidence to claims and turn recurring failures into better infrastructure? |

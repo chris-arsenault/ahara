@@ -1,9 +1,26 @@
-# Platform
+# Ahara Platform and Engineering Practice
 
-Index repo for the platform layer. Contains documentation, CI tooling, shared workflows, and orchestration scripts.
+Front door for Chris Arsenault's personal Ahara platform and reusable agentic
+engineering practice. Contains documentation, CI tooling, shared workflows,
+orchestration scripts, and practice guides.
+
+## Audiences and boundaries
+
+- Start with [README.md](README.md) to choose the platform or practice path.
+- Ahara integration instructions apply to the owner's projects and infrastructure.
+  Ahara is not a platform offered for other people or client organizations to use.
+- [Agentic engineering practice](docs/agentic-engineering.md) is intended for reuse
+  across environments. Keep its guidance self-contained, identify example systems,
+  and distinguish current implementations from proposed designs.
+- Practice guidance does not install rules or grant access. The destination
+  project's instructions, tools, and authorization govern work there.
 
 ## Contents
 
+- `docs/agentic-engineering.md` — practice index, reading paths, and adaptation guidance
+- `docs/working-with-coding-agents.md` — experience-based field report
+- `docs/coding-agents/` — focused practice guides, including JIT documentation,
+  multi-step workflows, and agent responsibilities
 - `INTEGRATION.md` — canonical integration guide for AI agents
 - `skills/repo-docs/` — repository documentation conventions skill, mirrored to `~/.claude/skills/repo-docs/` for active use
 - `CI-WORKFLOW.md` — shared reusable CI/CD workflow, platform.yml, governance, Qlty, and engineering reporting

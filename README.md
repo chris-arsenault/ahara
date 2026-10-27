@@ -1,9 +1,43 @@
-# Platform
+# Ahara: Platform and Agentic Engineering
 
-Index repo for the Ahara platform: shared cloud infrastructure, household
-network appliances, identity, observability, deployment tooling, and standards.
+Two related bodies of work by Chris Arsenault live here: the operating guide
+for my personal Ahara platform, and a reusable collection of agentic engineering
+practices, patterns, and essays drawn from building with agents.
 
-## Repos
+## Start Here
+
+| What brings you here? | Start with |
+| --- | --- |
+| Working with agents in your own project or a client environment | [Agentic engineering practice](docs/agentic-engineering.md): the reading map, practical patterns, and how to adapt them |
+| Understanding how I work with coding agents | [What has worked for me](docs/working-with-coding-agents.md): the field report and its supporting articles |
+| Integrating or operating one of my Ahara projects | [Platform integration](INTEGRATION.md) and [platform architecture](docs/architecture.md) |
+| Editing this repository | [Agent instructions](AGENTS.md) and [documentation index](docs/README.md) |
+
+The practice material is intended for reuse, including my work across client
+environments. It can be used with your own repositories, tools, and delivery
+platform. Examples identify their source systems; adopting a practice does not
+require access to those systems.
+
+Ahara itself is my personal CI/CD and infrastructure platform. It is not offered
+as a service or a platform for others to join or deploy onto. Its account,
+identity, network, and deployment instructions apply to my projects. The
+practice guides use those systems as examples where relevant.
+
+## Ahara Platform
+
+Ahara provides shared cloud infrastructure, household network appliances,
+identity, observability, deployment tooling, and standards for my projects.
+
+| Task | Guide |
+| --- | --- |
+| Integrate a project | [INTEGRATION.md](INTEGRATION.md) |
+| Understand the platform | [Architecture and diagrams](docs/architecture.md) |
+| Configure shared CI/CD | [CI-WORKFLOW.md](CI-WORKFLOW.md) |
+| Deploy an owner-only TrueNAS workload | [TRUENAS-DEPLOY.md](TRUENAS-DEPLOY.md) |
+| Send metrics, logs, and traces | [OBSERVABILITY.md](OBSERVABILITY.md) |
+| Add scheduled data processing | [Data pipelines](docs/data-pipelines.md) |
+
+### Platform Repositories
 
 | Repo | Purpose | Path |
 |------|---------|------|
@@ -20,7 +54,7 @@ network appliances, identity, observability, deployment tooling, and standards.
 | [nas-falkordb](https://github.com/chris-arsenault/nas-falkordb) | FalkorDB on TrueNAS, deployed through Komodo | `../nas-falkordb` |
 | [nas-text-embeddings-inference](https://github.com/chris-arsenault/nas-text-embeddings-inference) | Text Embeddings Inference on TrueNAS, deployed through Komodo | `../nas-text-embeddings-inference` |
 
-## Deploy Order
+### Deploy Order
 
 ```
 ahara-infra   (single Terraform apply; control, network, and services resolve through the module DAG)
@@ -30,16 +64,9 @@ ahara-infra   (single Terraform apply; control, network, and services resolve th
 
 Deploy: `cd ../ahara-infra && ./scripts/deploy.sh`
 
-## This Repo Also Contains
+### Tooling in This Repository
 
-- `INTEGRATION.md` — canonical instructions for AI agents integrating projects with the platform
-- `CI-WORKFLOW.md` — shared reusable CI/CD workflow, platform.yml, governance, Qlty, and engineering reporting
-- `TRUENAS-DEPLOY.md` — TrueNAS deploy pattern (Docker, Komodo, secret-paths.yml)
-- `OBSERVABILITY.md` — telemetry stack, the Cognito M2M + Envoy JWT ingest-auth pattern, and how producers send authenticated metrics/logs/traces
-- `docs/` — durable reference documents, including the [platform architecture](docs/architecture.md) and [repository line-count snapshot](docs/repository-line-counts.md)
+- [Documentation conventions](skills/repo-docs/SKILL.md) and planning skills in `skills/`; see the [practice index](docs/agentic-engineering.md#adapting-the-practice) for their environment dependencies
+- [Repository line-count snapshot](docs/repository-line-counts.md)
 - `.github/workflows/ci.yml` — shared reusable CI/CD workflow (called by all standard projects)
 - `.github/actions/` — `collect-engineering-report`, `report-build`, `governance-check`, `run-migrations`, `deploy-truenas`
-
-## Integration
-
-See [INTEGRATION.md](INTEGRATION.md) for full instructions.
