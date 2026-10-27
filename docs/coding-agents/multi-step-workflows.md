@@ -1,148 +1,83 @@
-# Multi-Step Workflows That Carry Their Own Context
+# Multi-Step Workflows
 
-[Practice index](../agentic-engineering.md) · [Field report](../working-with-coding-agents.md)
+[Practice index](../agentic-engineering.md)
 
-A substantial domain task often needs several connected judgments: understand
-the evidence, develop an approach, challenge it, write the result, and review
-the whole. A guided workflow can retain that work and present the next useful
-question with the context needed to answer it.
+Guide connected domain decisions while preserving the developing work.
+The application supplies state, relevant evidence, and supported actions.
+The agent and expert supply judgment and can revise the direction.
 
-Bidcraft, the proposal-authoring application in `opm-clarity`, provides a
-concrete example. The agent answers substantive business questions. The
-application owns the workflow definition, saves the answers, updates proposal
-source, and exposes the current state to its CLI, MCP clients, and review UI.
-The expert can redirect the argument and revise earlier answers as
-understanding develops.
+## Choose the Right Form
 
-## Put the Sequence in the Domain Application
+A skill can describe a procedure. A plan can coordinate an assignment.
+Application-owned workflow state is useful when domain objects must stay
+coherent across steps, sessions, or collaborators.
 
-| Responsibility | Owner |
-| --- | --- |
-| Define the questions, relationships, and required structural checks | Domain application |
-| Read evidence, reason about the problem, and draft an answer | Agent working under the expert's direction |
-| Retain answers, review findings, revisions, and current progress | Application's shared work state |
-| Decide whether the argument is useful and what direction to pursue | Domain expert, supported by agent analysis |
-| Validate a write and update the canonical artifact | Domain operation |
+Start with the artifact and the decisions needed to produce it. Group work
+by coherent judgment rather than a fixed number of questions. A single step
+can be small; a stage can combine related questions without dropping coverage.
 
-A skill can explain the workflow and when to use it. A durable plan can track
-the surrounding assignment. The application's workflow is useful when the
-steps operate on domain objects and must keep those objects coherent across
-sessions or collaborators.
+Use a saved workflow only when continuity or coordinated writes require it.
+Several steps alone do not require a new service.
 
-For a simple repository task, an existing plan and ordinary edits may suffice.
-Introduce saved workflow state when resumption, shared work, or coordinated
-artifact updates require it. The number of steps alone does not require a
-workflow service.
+## Make Each Step Usable
 
-## The Working Loop
+A step should expose its identity and scope, current question or decision,
+relevant source content or retrievable references, supported response shape,
+and next action. Read the needed bodies before answering.
 
-```mermaid
-flowchart TD
-    A[Discover or resume a run] --> B[Read current question and relevant sources]
-    B --> C[Develop an answer with expert direction]
-    C --> D[Submit answer and explicit revisions]
-    D --> E[Validate and save work]
-    E --> F{More work?}
-    F -->|Yes| B
-    F -->|Ready for final review| G[Read the assembled artifact and findings]
-    G -->|Revision needed| C
-    G -->|Complete| H[Return saved result]
-```
+The ordinary loop is: read current state and evidence, develop the answer,
+submit it with explicit revisions, inspect the saved result, and continue.
+Let a later session recover that loop from the artifact and run state without
+replaying the whole conversation.
 
-Each response needs enough information to continue from the saved state:
-the run identity, current question or stage, applicable source references,
-the supported response shape, and the next action. The agent should be able to
-resume by reading the run, even when the conversation that started it is gone.
+## Make Recorded Judgment Affect Later Work
 
-## Bidcraft's Win-Theme Example
+Retain consequential observations, reasons, uncertainties, and proposed
+improvements with the content they concern. Surface unresolved items in later
+steps where they matter. Reconsider dependent conclusions when their evidence
+changes.
 
-A win theme is an argument connecting a buyer's need to an approach, a benefit,
-and a reason to choose the bidder. Bidcraft's workflow develops that argument
-through questions about evidence, mechanism, differentiation, writing, and
-review. It also has workflows for narrative threads, solution elements, and
-client research.
+Resolve an item through a supported revision, an explained rejection, or an
+explicit decision to carry it forward. Merely collecting notes in a log does
+not preserve useful understanding if subsequent work never encounters them.
 
-The CLI presents one question per command. MCP and the review UI can group the
-win-theme questions into six stages using the same underlying fields:
+Avoid making filled fields, minimum note lengths, finding counts, or progress
+counters stand in for judgment. Structural checks can establish required
+coverage; they cannot score the quality of an argument or artifact.
 
-| Stage | Work it brings together |
-| --- | --- |
-| Ground the argument | Requirements, buyer need, and evaluation criteria |
-| Develop the approach and advantage | Mechanism, reason to prefer, and supporting differentiators |
-| Challenge and refine | Competition, benefit, a concrete walk-through, demonstration, scope, and customer voice |
-| Write the argument | Body, headline, and placement in the proposal |
-| Review the draft | Evaluator perspective, fit among other themes, and plain language |
-| Read back and complete | Coherence of the assembled source and structural findings |
+## Separate Assessment From Revision
 
-The grouping changes interaction size while preserving the work. A model can
-answer a coherent stage together; a single-question run can take smaller
-steps. The useful unit follows the domain decision and the person's direction.
+A review records a finding. An edit changes authored content. Preserve that
+distinction even when both are submitted together, and show which content
+actually changed.
 
-In the CLI, `guide start`, `guide response`, `guide revise`, and `guide show`
-create, advance, revise, and inspect a run. MCP uses `workflows_list` for
-discovery and `guide_advance` for the corresponding actions. Names and input
-fields come from discovery rather than being inferred from a display label.
+Support revision of earlier answers when later work exposes a contradiction.
+Check the assembled artifact after related edits. Finishing a sequence is not
+evidence that its parts form a coherent whole.
 
-## Make Review Change the Artifact Explicitly
+When user instructions limit a review, retain the limitation and its reason.
+Required structural checks and access controls remain independently governed;
+filtering suggested reading does not change permission to access sources.
 
-A review finding and a content revision are different contributions. Recording
-“the benefit needs to be more specific” should preserve that assessment.
-Changing the benefit requires an explicit revision to the authored field.
+## Keep State and Writes Coherent
 
-Bidcraft can accept review answers and revisions together. The result shows
-which fields actually changed. Review findings remain distinguishable from
-proposal prose, so a later reader can see the argument and its assessment
-without confusing one for the other.
+Retain the selected artifact and revision throughout a multi-call operation.
+A moving default such as the latest edition can redirect later calls.
 
-While a guided run is open, its source changes through workflow operations.
-An unexpected direct file edit stops the next operation rather than being
-silently overwritten. After completion, the result is ordinary proposal
-source. This gives the active workflow a clear writing boundary without
-making the finished artifact dependent on a conversation.
+For shared writers, validate the revision being changed. For retryable writes,
+use request identity that prevents duplicate effects. Coordinate artifact and
+workflow updates when they must succeed together. Define how direct edits
+interact with an open workflow so progress cannot silently overwrite them.
 
-## Retain Only the State the Work Needs
+Choose durability, interruption recovery, and extensibility separately.
+A local single-user task may need less machinery than a shared service.
+Preserve the guarantees the actual work requires.
 
-Bidcraft's shared runs preserve answers and their revision history. Service
-writes use the latest version and a request ID: a stale version requires a
-fresh read, and retrying the same request does not advance twice. CLI writes
-use the workspace lock. Collaborators can resume the same run without an
-ownership transfer.
+## Complete the Work, Not Just the Sequence
 
-Those mechanisms serve concrete needs: shared editing, retries, and consistent
-updates to work state and source. They are implementation choices for this
-application. A single-user local workflow can use simpler persistence when it
-provides the required behavior. Saved state, recovery after interruption, and
-support for adding new workflows are separate design decisions.
+Read the result as its intended user. Check its claims and relationships,
+inspect improvements prompted by review, and report remaining uncertainty.
+Keep finished artifacts usable independently of the conversation.
 
-Carry the selected proposal and edition IDs through a multi-call operation.
-A convenient default such as “latest edition” can resolve differently after
-another edit; explicit scope keeps the work attached to the intended artifact.
-
-## Leave Judgment Open
-
-The questions organize the work. They do not make every answer correct or
-every review appropriate to every assignment. Bidcraft lets a reviewer record
-that a review was limited or skipped, with a reason, when the user's
-instructions constrain it. Final structural checks still apply. Filtering the
-suggested reading changes guidance; source access remains separately governed.
-
-Evaluate both the mechanism and the resulting work. A workflow can save every
-answer and pass every structural check while producing a weak argument. Read
-the assembled artifact, test its claims against evidence, and ask whether it
-serves the intended reader. Workflow completion establishes that the process
-finished; substantive quality needs domain judgment.
-
-For another domain, begin with one recurring task and its actual artifact.
-Identify the decisions that benefit from guidance, the sources each decision
-needs, and the ways new evidence can require revision. Keep those revision
-paths visible. Add application state where continuity requires it, and use
-[JIT documentation](jit-documentation.md) to expose the current work.
-
-## Source Example
-
-Bidcraft's `docs/guided-workflows.md` describes the shared workflow contract.
-Its implementation is under `bidcraft/lib/bidcraft/guide/`, including
-`stages.rb`, `prompt.rb`, and `run.rb`.
-`bidcraft/lib/bidcraft/editorial/agent_guide.md` describes the MCP working loop.
-These sources live in `opm-clarity`; the pattern above is usable without its
-proposal content or infrastructure.
+For content-centered operations, use [domain-native work surfaces](domain-native-work.md).
+For substantive quality, use [verification and improvement](verification-and-improvement.md).

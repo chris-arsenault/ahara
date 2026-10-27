@@ -1,126 +1,88 @@
-# Verification and Harness Improvement
+# Verification and Improvement
 
-[Back to the guide overview](../working-with-coding-agents.md)
+[Practice index](../agentic-engineering.md)
 
-> Throughout this article, “I,” “me,” and “my” refer to Chris Arsenault.
+Name the claim, obtain evidence that can support it, and report its limits.
+Separately judge whether the resulting artifact serves its intended user.
+Correct mechanics and substantive quality need different kinds of attention.
 
-Code is now cheap to generate, but confidence still has to be earned the usual
-way. I ask the model to name the claim it's making and choose evidence that
-can actually support that claim.
+## Match Evidence to the Claim
 
-## Match the Evidence to the Claim
-
-Different checks observe different layers:
-
-| Claim | Evidence that can support it |
+| Claim | Useful evidence |
 | --- | --- |
-| A local behavior is correct | Focused unit or contract test |
-| Components integrate in this checkout | Canonical repository validation |
-| The release mechanism ran | CI or deployment log |
-| Deployed configuration matches intent | Rendered plan, state, or configuration |
-| A service is reachable and useful | Runtime query and user-visible path |
-| A performance property holds | Trace, profile, benchmark, or production telemetry |
+| Local behavior is correct | Focused behavioral or contract test |
+| Components integrate | The repository's relevant integration checks |
+| A release operation ran | Actual CI or deployment logs |
+| Deployed state matches intent | Observed configuration or runtime state |
+| A user can complete the task | The actual user-visible path |
+| Performance improved | Representative end-to-end workload with comparable conditions |
+| A document or design is sound | Source review, consistency, and relevant domain judgment |
+| An agent workflow helps | Representative work showing useful decisions and artifacts across revisions |
 
-The rows don't substitute for each other: a green local suite says nothing
-about the deploy, and a successful deploy says nothing about whether the
-service is reachable or its data path works. When CI or runtime logs are
-unavailable, the cause of a failure remains unverified.
+These rows do not substitute for one another. Local test success does not
+establish deployment, and a successful deployment does not establish usability.
+If failure logs are unavailable, the cause remains unverified.
 
-Verification should be proportionate. Every meaningful change needs evidence,
-but not every one-line edit deserves a permanent test. A permanent test earns
-its place by protecting a stable contract, invariant, security boundary, or
-regression that would otherwise recur.
+Measure the user's actual workload. Distinguish local gains from the reported
+problem, preserve relevant conditions, and identify remaining bottlenecks.
+Report variability and missed goals. Do not change thresholds or impose new
+runtime restrictions merely to make an acceptance number pass.
 
-The model owns the telemetry needed to diagnose its work. If the stated outcome
-cannot be measured with current instrumentation, it should propose or add the
-smallest useful signal instead of asking me to invent fields I will never
-inspect.
+## Use Proportionate Verification
 
-## Measure the Workflow
+Protect stable contracts, material invariants, and regressions. Prefer a focused
+regression test that can detect the bug when behavior changes. Existing passing
+coverage may suffice for a refactor. Review documentation against its sources
+and use relevant validators; do not manufacture failing tests for prose.
 
-A 2025 randomized trial by Becker, Rush, Barnes, and Rein found that 16
-experienced open-source developers working on 246 tasks with early-2025 tools
-took 19 percent longer with AI while estimating afterward that they had worked
-20 percent faster
-([paper](https://arxiv.org/abs/2507.09089)).
+Tests that mirror implementation details can change with the code while
+protecting nothing independent. Select evidence that could reveal a plausible
+wrong implementation, including an omitted consumer or a substituted outcome.
 
-The study looked at earlier models, a particular interface, developers with
-moderate AI experience, and a different operating method, so I don't read it
-as a verdict on this workflow. What it does show is that perceived speed is a
-poor measurement tool. I look instead at cycle time, rework, escaped defects,
-operational outcomes, and the ambition of work completed. Faster typing was
-never the outcome.
+Run the required checks for the final state. Repeat or broaden them when a
+change, failure, or unresolved concern justifies it. If observability is missing,
+add or propose the smallest signal needed to distinguish the hypotheses within
+the authorized scope.
 
-The same discipline applies inside a task: a plausible diagnosis isn't yet a
-finding, a test that has only ever been seen green proves little about the
-regression it supposedly catches, and a deploy that returned success says
-nothing about whether the requested route serves traffic. The agent should
-report the evidence it actually obtained and the layer that remains unchecked.
+## Review for Improvement Across Dimensions
 
-## Improve the Harness When a Failure Repeats
+A defect review asks what is wrong. An improvement review also asks what would
+make the work substantially better. Use the requested review mode and quality
+bar; do not treat the absence of hard errors as a favorable quality judgment.
 
-Correcting one answer fixes one answer; changing the environment that produced
-the error fixes a class of them.
+Identify the dimension that dominated drafting, then examine the other relevant
+dimensions. Correctness can coexist with poor usability, a supported argument
+with weak structure, or valid music with little direction. Choose lenses from
+the artifact's purpose rather than imposing the same checklist everywhere.
 
-Depending on the failure, I may improve:
+Trace feedback to its structural cause. A local patch is appropriate when the
+cause is local; otherwise revise the owning structure and inspect its effects
+across the whole artifact. During a read-only review, propose that revision
+without silently applying it.
 
-- `AGENTS.md` when a stable repository rule was missing;
-- a current-state document when ownership or a boundary was hard to recover;
-- an ADR when consequential rationale disappeared between sessions;
-- a skill when a recurring workflow needed a repeatable sequence;
-- a type, linter, or permission when an invalid action must be impossible;
-- a test or CI check when a machine can observe the contract;
-- a retrieval index when the information existed but could not be found; or
-- a tool interface when the model could not act or observe precisely.
+When improvement is authorized, make a reasoned change and reassess the result.
+Carry useful findings into subsequent work. Avoid mandatory finding counts,
+word counts, or revision quotas that encourage manufactured criticism.
+Further changes need a substantive reason tied to the requested quality bar;
+review is not an instruction to churn indefinitely.
 
-OpenAI's
-[Harness Engineering](https://openai.com/index/harness-engineering/), Simon
-Willison's
-[Agentic Engineering Patterns](https://simonwillison.net/guides/agentic-engineering-patterns/what-is-agentic-engineering/),
-and Armin Ronacher's
-[agentic coding recommendations](https://lucumr.pocoo.org/2025/6/12/agentic-coding/)
-all emphasize the surrounding specifications, tools, observability, and
-verification rather than code generation alone.
+## Evaluate the Working Arrangement
 
-The harness should remain legible. An agent can generate complexity faster
-than a person can understand it, which raises the value of clear boundaries
-and small dependency surfaces. A permanent control should cost less than the
-recurring failure it prevents.
+For expert-directed work, evaluate creation, interruption, revision, and
+redirection as well as the initial output. Determine whether earlier judgment
+remains available and whether later work improves on it.
 
-Repository context also can't repair a model assigned the wrong job. A
-proposal task needs product and design criteria, a review needs findings and
-evidence rather than silent repairs, and a deployment task needs authority and
-runtime proof. The harness should make those modes easy to state and hard to
-confuse.
+Cycle time, rework, escaped defects, decision quality, and operational outcomes
+can inform evaluation. Token use, tool-call counts, and completed stages
+describe activity; they are not substitutes for the result.
 
-## Failure Patterns I Avoid
+## Repair the Source of Recurring Failure
 
-I avoid these patterns because I have seen them produce weak work:
+Choose the owning improvement: clearer instructions for judgment, better
+navigation for missing context, a domain operation for incoherent edits, a
+type or permission for invalid actions, or a test for observable regressions.
 
-- giving the model a large context dump and hoping relevance emerges;
-- asking it to implement before it can describe the current system and affected
-  consumers;
-- making it ask me for every technical decision after I supplied the criteria;
-- treating a question, review comment, or speculation as authorization to edit;
-- fixing something and then calling the completed change a proposal;
-- letting the design follow the latest comment without reconciling earlier
-  requirements;
-- treating documents, plans, transcripts, or memory as stronger evidence than
-  current code and runtime behavior;
-- equating test success with deployment success;
-- encoding an architectural property only in prose when the compiler, linter,
-  permission system, or runtime can reject violations;
-- keeping tests that mirror source syntax or completed migration scaffolding;
-- running more agents than human attention can supervise;
-- adding permanent process that costs more than the failure it prevents; and
-- weakening an authority boundary to get an agent unstuck.
-
-### Reference points
-
-- [The Canonry Game](https://github.com/chris-arsenault/the-canonry-game)
-  separates compile-time kernel restrictions, behavioral simulation tests, and
-  runtime performance evidence instead of asking one suite to prove all three.
-- [Sulion](https://github.com/chris-arsenault/sulion) combines transcript
-  retrieval, structural navigation, plan state, brokered capabilities, and
-  repository checks so repeated failures can move into the harness layer
-  responsible for them.
+Keep the response cheaper and clearer than the recurring failure. Report what
+changed, the evidence obtained, and what remains unresolved. Use
+[multi-step workflows](multi-step-workflows.md) when findings must guide later
+steps, and [meta-harness](meta-harness.md) when the gap spans sessions.

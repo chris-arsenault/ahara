@@ -1,6 +1,8 @@
 # What Has Worked for Me When Building Software With Coding Agents
 
-[Agentic engineering practice index](agentic-engineering.md)
+This is the human-facing field report. Agents should start with the
+[practice index](agentic-engineering.md) and load only the guide relevant to
+their current task; this essay is optional background.
 
 I get the best results from coding models when I treat them as temporary
 product managers, designers, architects, engineers, and reviewers rather than
@@ -75,7 +77,7 @@ corrected repeatedly, so each is paired with the tendency it corrects.
 | **A boundary the build doesn't enforce is not a boundary.** Dependency direction and policy chokepoints are checked mechanically. | Written rules don't bind a model. It reaches across a layer because that was the shortest route to working code. |
 | **Hypotheses come from code and data, never from text completion.** Read the source, run the thing, get the log. | Fluent assertion is free, and a diagnosis with nothing behind it reads exactly like one with everything behind it. |
 
-[Read the design principles in depth, with the prompts they came from.](coding-agents/design-principles.md)
+[Read the design principles and how to apply them.](coding-agents/design-principles.md)
 
 ## Guide
 
@@ -83,14 +85,17 @@ corrected repeatedly, so each is paired with the tendency it corrects.
 | --- | --- |
 | [Design Principles](coding-agents/design-principles.md) | Which axioms should a model hold while designing, and which failure mode does each one correct? |
 | [Design as a Conversation Between Peers](coding-agents/collaboration-and-design.md) | How do I work with a model as a product and design peer without writing a complete specification first? |
+| [Preserve Intent Through Long-Running Work](coding-agents/sustained-intent.md) | How do requirements, corrections, and assumptions remain distinct across phases and interruptions? |
+| [Meta-Harness and Tooling Around the Agent](coding-agents/meta-harness.md) | How do shared tooling and Sulion plans make work recoverable and supervision practical? |
 | [Context Engineering as Information Architecture](coding-agents/context-and-memory.md) | How do documentation, retrieval, source navigation, and information lifecycles keep context useful? |
 | [Just-in-Time Documentation for Agents](coding-agents/jit-documentation.md) | How does the agent discover and read the guidance it needs at the point of action? |
-| [Multi-Step Workflows That Carry Their Own Context](coding-agents/multi-step-workflows.md) | How can a domain application guide substantial work, retain progress, and support revision? |
+| [Domain-Native Work Surfaces](coding-agents/domain-native-work.md) | How can agents concentrate on the domain while software owns syntax, storage, and structural rules? |
+| [Multi-Step Workflows](coding-agents/multi-step-workflows.md) | How can a domain application guide substantial work, retain progress, and support revision? |
 | [Separating Responsibilities in Agent Systems](coding-agents/agent-responsibilities.md) | What belongs to the interface, execution environment, model, memory, skills, and domain system? |
 | [Architecture That Helps Agents Stay Correct](coding-agents/architecture-for-agents.md) | Which architecture and language choices reduce errors and keep work inside a bounded context? |
-| [Tooling, Capabilities, and External Work State](coding-agents/tooling-and-controls.md) | How do agent rules, deterministic controls, secret brokering, and durable plans increase autonomy safely? |
-| [Verification and Harness Improvement](coding-agents/verification-and-improvement.md) | How do I match evidence to claims and turn recurring failures into better infrastructure? |
-| [Reusable Prompt Patterns](coding-agents/prompt-patterns.md) | Which material prompt structures recur in my work, and how can they be adapted without becoming rituals? |
+| [Tooling and Controls](coding-agents/tooling-and-controls.md) | How do agent rules, deterministic controls, and narrow capabilities support authorized autonomy? |
+| [Verification and Improvement](coding-agents/verification-and-improvement.md) | How do I match evidence to claims, improve substantive quality, and address recurring failures? |
+| [Prompt Patterns and Task Contracts](coding-agents/prompt-patterns.md) | How can an agent interpret or formulate a bounded assignment without requiring a prompt ritual? |
 
 ## The Method in Brief
 
@@ -175,7 +180,8 @@ phases, exit gates, and unresolved choices. I expand the next phase just in
 time, so work stays resumable without filling the plan with stale file-level
 instructions.
 
-[Read the tooling and controls article.](coding-agents/tooling-and-controls.md)
+[Read the tooling and controls article](coding-agents/tooling-and-controls.md)
+and [the meta-harness guide for shared tooling and plans](coding-agents/meta-harness.md).
 
 ### Verify the Claim at the Layer Where It Exists
 

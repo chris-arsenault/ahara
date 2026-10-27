@@ -1,27 +1,26 @@
 # Ahara: Platform and Agentic Engineering
 
 Two related bodies of work by Chris Arsenault live here: the operating guide
-for my personal Ahara platform, and a reusable collection of agentic engineering
-practices, patterns, and essays drawn from building with agents.
+for my personal Ahara platform, and reusable engineering guidance for agents
+working across repositories and client environments.
 
 ## Start Here
 
 | What brings you here? | Start with |
 | --- | --- |
-| Working with agents in your own project or a client environment | [Agentic engineering practice](docs/agentic-engineering.md): the reading map, practical patterns, and how to adapt them |
-| Understanding how I work with coding agents | [What has worked for me](docs/working-with-coding-agents.md): the field report and its supporting articles |
+| Agent choosing guidance for the current task | [Agentic engineering practice](docs/agentic-engineering.md): select the relevant guide; the collection is not a startup reading list |
+| Human looking for the experience behind the practice | [What has worked for me](docs/working-with-coding-agents.md): optional background, outside the agent reading path |
 | Integrating or operating one of my Ahara projects | [Platform integration](INTEGRATION.md) and [platform architecture](docs/architecture.md) |
 | Editing this repository | [Agent instructions](AGENTS.md) and [documentation index](docs/README.md) |
 
-The practice material is intended for reuse, including my work across client
-environments. It can be used with your own repositories, tools, and delivery
-platform. Examples identify their source systems; adopting a practice does not
-require access to those systems.
+The practice guides are written primarily for agents: concise principles,
+reasons, and decision criteria. Use them with the destination's repositories,
+tools, instructions, and authorization. Tool-specific guidance is conditional
+on that tool being available.
 
 Ahara itself is my personal CI/CD and infrastructure platform. It is not offered
 as a service or a platform for others to join or deploy onto. Its account,
-identity, network, and deployment instructions apply to my projects. The
-practice guides use those systems as examples where relevant.
+identity, network, and deployment instructions apply to my projects.
 
 ## Ahara Platform
 
@@ -66,7 +65,7 @@ Deploy: `cd ../ahara-infra && ./scripts/deploy.sh`
 
 ### Tooling in This Repository
 
-- [Documentation conventions](skills/repo-docs/SKILL.md) and planning skills in `skills/`; see the [practice index](docs/agentic-engineering.md#adapting-the-practice) for their environment dependencies
+- [Documentation conventions](skills/repo-docs/SKILL.md) and Sulion-specific planning skills in `skills/`; use the [meta-harness guide](docs/coding-agents/meta-harness.md) when working with the surrounding tooling
 - [Repository line-count snapshot](docs/repository-line-counts.md)
 - `.github/workflows/ci.yml` — shared reusable CI/CD workflow (called by all standard projects)
 - `.github/actions/` — `collect-engineering-report`, `report-build`, `governance-check`, `run-migrations`, `deploy-truenas`

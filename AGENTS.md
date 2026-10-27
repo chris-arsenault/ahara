@@ -9,18 +9,23 @@ orchestration scripts, and practice guides.
 - Start with [README.md](README.md) to choose the platform or practice path.
 - Ahara integration instructions apply to the owner's projects and infrastructure.
   Ahara is not a platform offered for other people or client organizations to use.
-- [Agentic engineering practice](docs/agentic-engineering.md) is intended for reuse
-  across environments. Keep its guidance self-contained, identify example systems,
-  and distinguish current implementations from proposed designs.
+- [Agentic engineering practice](docs/agentic-engineering.md) is primarily for
+  agents working across environments. Keep guides concise and self-contained:
+  principles, reasons, and decision criteria. Use task-based navigation; do not
+  require loading the whole collection. Keep anecdotes and research citations
+  in the optional human field report. Include examples only when they clarify
+  an action or distinction the agent needs.
+- Keep tool-specific guidance conditional on availability, verify its contract,
+  and distinguish implemented behavior from proposed designs.
 - Practice guidance does not install rules or grant access. The destination
   project's instructions, tools, and authorization govern work there.
 
 ## Contents
 
-- `docs/agentic-engineering.md` — practice index, reading paths, and adaptation guidance
-- `docs/working-with-coding-agents.md` — experience-based field report
-- `docs/coding-agents/` — focused practice guides, including JIT documentation,
-  multi-step workflows, and agent responsibilities
+- `docs/agentic-engineering.md` — task-based entry point for agents
+- `docs/working-with-coding-agents.md` — optional human field report
+- `docs/coding-agents/` — focused agent guides, including sustained intent,
+  domain-native work, meta-harness tooling, JIT documentation, and workflows
 - `INTEGRATION.md` — canonical integration guide for AI agents
 - `skills/repo-docs/` — repository documentation conventions skill, mirrored to `~/.claude/skills/repo-docs/` for active use
 - `CI-WORKFLOW.md` — shared reusable CI/CD workflow, platform.yml, governance, Qlty, and engineering reporting

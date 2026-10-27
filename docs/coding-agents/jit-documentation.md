@@ -1,124 +1,70 @@
 # Just-in-Time Documentation for Agents
 
-[Practice index](../agentic-engineering.md) · [Field report](../working-with-coding-agents.md)
+[Practice index](../agentic-engineering.md)
 
-Just-in-time (JIT) documentation delivers the relevant instructions and source
-material when the agent reaches the work that needs them. An entry point tells
-the agent where to start; discovery narrows the task; a substantive read
-supplies the evidence; an operation explains how to act on it.
+Expose guidance at the decision that needs it. Keep entry context small and
+make deeper material discoverable. The goal is sufficient understanding for
+the current action, with important boundaries visible before it is taken.
 
-This is an information-design practice. A Markdown index and a few focused
-documents can implement it. A domain application can go further by returning
-guidance alongside current state and the next available action.
+## Layer the Information
 
-## Give Each Layer a Job
+| Layer | Supply |
+| --- | --- |
+| Entry instructions | Purpose, authority, canonical sources, and how to discover the next relevant guide |
+| Task discovery | Available activities, current objects, selection keys, and the route for this task |
+| Focused guidance | Relevant concepts, procedure, and reasons |
+| Source read | Actual content and context needed to support a claim or change |
+| Operation contract | Inputs, effects, required versions, and failure behavior |
+| Result or refusal | What changed or failed, its basis, and the supported next action |
 
-| Layer | What belongs there | When it enters context |
-| --- | --- | --- |
-| Entry instructions | Purpose, authority boundaries, canonical sources, and how to discover more | At orientation |
-| Task index or discovery tool | Available activities, objects, identifiers, and the route for the current task | When choosing work |
-| Focused guide | The relevant procedure, domain concepts, and a small example | When beginning that activity |
-| Source read | Actual prose, code, evidence, or current object state | Before making a claim or change |
-| Operation contract | Accepted inputs, effects, version requirements, and failure behavior | Before performing the operation |
-| Result or refusal | What changed or failed, the basis for that result, and a useful next action | After the operation |
+An index locates material. It does not replace the body. A returned reference
+does not establish that it was read. Make partial reads visible and provide a
+continuation before inviting a judgment about the whole.
 
-Keep the load-bearing boundaries at the entry point. Defer the detailed
-operating manual. Guidance about authority must still be available before
-the agent exercises that authority.
+## Design for the Current Task
 
-An index entry is a routing aid. A document title, search snippet, schema, or
-status flag does not substitute for reading the body. A returned reference
-shows that a source was offered, not that it was read.
+Return the current object or step, relevant content, and the action needed to
+continue. Give readers readable content; add technical metadata when they need
+versions, identifiers, or typed edit targets.
 
-## A Concrete Discovery Path in Bidcraft
+Keep essential authority and scope constraints at the entry point. Defer
+detailed procedures until the task needs them. Avoid making the agent inspect
+every tool or guide as a startup ritual.
 
-Bidcraft is the proposal-authoring application maintained in `opm-clarity`.
-Its MCP interface illustrates this layering:
+A remote client needs retrievable source identifiers and actual source content.
+A path on another machine is not a usable reading interface by itself. Read
+operations should supply content directly; exports serve requests for files.
 
-1. `workspace_quickstart` returns selected proposal and edition IDs, current
-   work state, and a small set of task routes.
-2. `categories_describe`, `workflows_list`, or `operations_describe` exposes
-   the part of the application needed for the chosen task.
-3. `content_read` returns authored content. `sources_list` and `sources_read`
-   discover and read the supporting material; a section read stays within the
-   selected heading and its subsections.
-4. An edit-target read with `include_metadata:true` supplies the versions and
-   typed references needed for a write. Ordinary reading returns readable
-   content without requiring the full technical envelope.
-5. A guided step returns its immediate references, current question or stage,
-   and the fields needed to answer. A partial source read provides a
-   continuation call.
+## Preserve Meaning and Authority
 
-The starting guide supplies navigation and procedural instructions. The
-proposal strategy comes from reading the selected evidence and doing the
-domain work. Listing every tool and preloading every guidance document would
-obscure that sequence.
+Bound output without discarding definitions, qualifications, or relationships
+that affect the decision. The smallest useful context can still include
+neighboring content. A short, misleading excerpt is not an optimization.
 
-This also makes the interface usable from a client that cannot see the
-repository. A remote agent needs retrievable source identifiers and readable
-content; a path on the server's filesystem alone cannot supply either.
+Identify source and scope. Domain documents are evidence for the task, not
+instructions that can override tool rules or permissions. Distinguish
+procedural guidance from strategy or substantive conclusions the agent must
+develop from evidence.
 
-## Put Guidance Beside the Decision
+Keep operation descriptions with the implementation that owns them. Derive
+them from the actual contract or check them against it. Skills should teach
+use without maintaining a conflicting specification.
 
-A useful response answers the agent's immediate questions: what am I working
-on, what must I understand, what can I do next, and what will that action
-change? For example, an illustrative drafting step might return:
+## Teach at Failure and Resumption
 
-```text
-Current task: explain the buyer's benefit.
-Read: the selected requirement and the saved approach.
-Question: who benefits, and what changes in their work?
-Return: an answer for the benefit field using the current run version.
-Revision: update the earlier approach explicitly if this answer changes it.
-```
+A version conflict should lead to a fresh read. An unknown reference should
+lead to discovery. An authorization refusal should identify the boundary.
+Give the agent a legitimate recovery action rather than an invitation to
+invent a bypass.
 
-This response leaves the argument to the agent and domain expert. The
-application supplies the current state and the means to work on it.
+Resurfacing the current outcome, constraints, and unresolved findings can
+prevent drift after interruption. Return only the guidance relevant to this
+step, and make deeper context reachable.
 
-Errors can carry documentation too. A version conflict should identify the
-conflict and direct a fresh read. An unknown reference should explain how to
-discover valid references. An authorization refusal should identify the
-boundary. Recovery instructions must respect that boundary.
+Start with the repository's existing index and focused documents. Add runtime
+discovery when the needed context depends on live objects or state. Evaluate
+whether a fresh session can find the task, read its evidence, choose the
+supported action, and recognize an incomplete result.
 
-## Preserve Source and Meaning
-
-Documentation, retrieved evidence, and instructions have different authority.
-Identify the source and scope of returned material. Treat a customer document
-as evidence about the task; it does not acquire authority to change tool rules
-or permissions because it appears in context.
-
-Keep operating contracts with the implementation that owns them. Where a tool
-already has a schema, help text should use that schema or be checked against
-it. A skill can teach how to use the tool without maintaining a second,
-divergent specification of its inputs.
-
-Bounded output must make omissions visible. Return a continuation or narrower
-query when content is partial. Keep definitions, qualifications, and source
-relationships that affect meaning; a short response that hides them is poor
-context. The right working set is the smallest one that supports the decision.
-
-## Apply It in an Existing Repository
-
-Choose one task an agent repeatedly gets wrong or struggles to discover.
-Give it a route from the repository index to the owning guide and source.
-Move detailed instructions to that guide, keep essential boundaries at entry,
-and make the first read and next action explicit. Add runtime discovery only
-when the needed information depends on live objects or state.
-
-Try the route from a fresh session. Check whether the agent can find the task,
-read the relevant body, choose the supported action, and recognize an
-incomplete result. If it fails, fix the missing route, ambiguous contract, or
-misleading response. Loading the whole repository is rarely a useful repair.
-
-The [context and memory guide](context-and-memory.md) covers source authority
-and information lifecycles. [Multi-step workflows](multi-step-workflows.md)
-extends this discovery pattern into work that spans several decisions.
-
-## Source Example
-
-In the Bidcraft repository (`opm-clarity`), the maintained entry points are
-`tools/bidcraft-service/README.md` and
-`bidcraft/lib/bidcraft/editorial/agent_guide.md`. The guided CLI's
-`bidcraft/lib/bidcraft/guide/prompt.rb` assembles each question with its
-references and continuation commands. These are implementation examples;
-their tool names are specific to Bidcraft.
+For source authority, use [context and memory](context-and-memory.md).
+For stateful sequences, use [multi-step workflows](multi-step-workflows.md).
