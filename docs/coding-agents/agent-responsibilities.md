@@ -8,6 +8,8 @@ jobs even when they share a process.
 
 ## System Responsibilities
 
+![Agent system responsibilities: interaction, execution, memory and skills, model inference, and information sources](../diagrams/agent-system-responsibilities.png)
+
 | Part | Owns |
 | --- | --- |
 | Interaction | Starting, monitoring, and directing work through chat, developer tools, APIs, or events |
