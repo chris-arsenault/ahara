@@ -150,10 +150,18 @@ For capabilities outside the shared modules, use primitives directly. These name
 
 For AppSync Events, declare `appsync-events` in `policy_modules` and create the
 Event API, channel namespace and client configuration in the product repository.
-API creation requires `Project = <prefix>` request tags; API and namespace
-management is restricted to that project tag in `us-east-1`. AWS does not support
-resource ARN/tag scoping for API-key management, so those four key operations are
-region-restricted. This permission does not create a custom application backend.
+API creation requires `Project = <prefix>` request tags in `us-east-1`. Management
+of existing project-tagged APIs and namespaces checks that tag. Bootstrap tagging
+also accepts resources with no existing Project tag, so a deployer can adopt an
+untagged API or namespace and subsequently manage it. Resources tagged for another
+project cannot be adopted through that grant. This is not a complete ownership boundary.
+AWS lists `TagResource` among the authorization actions for API/namespace creation,
+but documents no creation-operation condition that distinguishes bootstrap tagging
+from direct tagging. A stricter existing-tag condition needs a live creation test
+before changing the primitive; do not assume it preserves first deployment or replacement.
+See the [AppSync authorization reference](https://docs.aws.amazon.com/service-authorization/latest/reference/list_appsync.html).
+AWS also does not support resource ARN/tag scoping for API-key management, so those
+four key operations are region-restricted. This permission creates no application backend.
 An anonymous browser key is public client configuration, not a secret or a
 substitute for document access control. AppSync retains no document history.
 
