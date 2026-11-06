@@ -140,12 +140,22 @@ For capabilities outside the shared modules, use primitives directly. These name
 | `dynamodb` | Project uses DynamoDB tables |
 | `bedrock-inference` | Project uses Bedrock model invocation |
 | `sns` | Project publishes to SNS topics |
+| `appsync-events` | Project manages AppSync Events APIs and anonymous browser keys |
 | `secrets-manager` | Project uses AWS Secrets Manager |
 | `komodo-deploy` | Project deploys via Komodo to TrueNAS; also covers project-scoped machine roles and Roles Anywhere discovery |
 | `ec2-vpc-compute` / `ec2-security-groups` | Project manages EC2 / VPC resources |
 | `rds` | Project manages RDS instances (`ahara-infra` only) |
 | `cognito-pool` | Project manages the shared Cognito user pool (`ahara-infra` only) |
 | `control-plane` | **`ahara-infra` only** — broad privileged access |
+
+For AppSync Events, declare `appsync-events` in `policy_modules` and create the
+Event API, channel namespace and client configuration in the product repository.
+API creation requires `Project = <prefix>` request tags; API and namespace
+management is restricted to that project tag in `us-east-1`. AWS does not support
+resource ARN/tag scoping for API-key management, so those four key operations are
+region-restricted. This permission does not create a custom application backend.
+An anonymous browser key is public client configuration, not a secret or a
+substitute for document access control. AppSync retains no document history.
 
 ---
 
