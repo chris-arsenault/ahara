@@ -467,7 +467,7 @@ Existing allocations:
 | 320–321 | ahara-business | ahara-business |
 | 370–371 | ahara-access | ahara-access |
 | 380–381 | bookmarker | bookmarker |
-| 410–411 | relay.arconis.ahara.io | arconis |
+| 409–411 | relay.arconis.ahara.io | arconis |
 
 Do not reuse a priority. Search every sibling project's Terraform immediately
 before assigning a new one; listener priorities are shared across repositories.
