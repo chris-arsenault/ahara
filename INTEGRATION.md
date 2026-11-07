@@ -37,7 +37,7 @@ Read the standards that apply to your project's tech stack **before** following 
 1. **Use the shared ALB** for all HTTP/HTTPS backends. Do NOT create API Gateways or per-project load balancers.
 2. **Use the shared VPC** (10.42.0.0/16). Do NOT create per-project VPCs.
 3. **Use the shared RDS** (PostgreSQL 16) with a per-project database. Do NOT create per-project RDS instances.
-4. **Use the shared Cognito pool** for authentication. Do NOT create per-project user pools. (Exception: `the-glass-frontier` has its own pool.)
+4. **Use the shared Cognito pool** for authentication. Do NOT create per-project user pools. (Exceptions: `the-glass-frontier` has its own pool; products with open sign-up or MCP connectors sign people in through the shared Auth0 tenant, Step 6b.)
 5. **Use tag-based lookups and SSM parameters** for cross-project config. Prefer the `platform-context` module. Do NOT use `terraform_remote_state`.
 6. **Use the shared state bucket** (`tfstate-559098897826`). Do NOT create per-project state buckets.
 7. **Do NOT create NAT Gateways.** The platform uses fck-nat.
@@ -696,6 +696,62 @@ validation, and Alloy/OTel-SDK producer wiring) before rolling your own.
 
 ---
 
+## Step 6b: Auth0 (open sign-up and MCP connectors)
+
+Skip this step unless your product needs open sign-up or an MCP endpoint that
+claude.ai and ChatGPT connect to on the web. Cognito has no dynamic client
+registration, which those connectors need; Auth0 provides it.
+
+**One tenant, owned by `ahara-infra`.** `services/auth0.tf` owns the tenant
+settings, Ahara branding and the sign-in domain `auth.ahara.io`. People see
+"Ahara" with your application's name. The tenant and its Terraform credential
+were created by hand once; nothing else in the tenant is changed by hand.
+
+**Each product owns its own objects in the tenant**, in its own Terraform:
+
+- **A database connection** named after the product. Its users are the
+  product's alone; enable it only for the product's applications.
+- **Applications** for the product's sign-in.
+- **APIs**, such as an MCP endpoint, whose identifier is the URL clients use.
+
+Configure the provider from the shared credential. Deployers can already read
+these parameters:
+
+```hcl
+terraform {
+  required_providers {
+    auth0 = { source = "auth0/auth0", version = "1.59.0" }
+  }
+}
+
+data "aws_ssm_parameter" "auth0_domain" { name = "/ahara/auth0/domain" }
+data "aws_ssm_parameter" "auth0_client_id" { name = "/ahara/auth0/client-id" }
+data "aws_ssm_parameter" "auth0_client_secret" { name = "/ahara/auth0/client-secret" }
+
+provider "auth0" {
+  domain        = nonsensitive(data.aws_ssm_parameter.auth0_domain.value)
+  client_id     = nonsensitive(data.aws_ssm_parameter.auth0_client_id.value)
+  client_secret = data.aws_ssm_parameter.auth0_client_secret.value
+}
+```
+
+Validate tokens against the issuer in `/ahara/auth0/issuer`
+(`https://auth.ahara.io/`).
+
+**Dynamic client registration is on for the whole tenant.** Registered clients
+are third-party: they can sign in only through domain-level connections, see a
+consent screen, and reach only APIs that grant third-party clients default
+access (`auth0_client_grant` with `default_for = "third_party_clients"`).
+Mark a connection domain-level (`is_domain_connection = true`) and give an API
+that default grant only when the product's MCP endpoint needs them. Every other
+connection stays off the domain level, and every other API grants third-party
+clients nothing.
+
+Never change tenant settings, the custom domain or branding from a product
+repository; those belong to `ahara-infra`.
+
+---
+
 ## Step 7: Frontend Deployment
 
 Skip this step if your project has no web frontend.
@@ -1062,6 +1118,15 @@ All platform SSM parameters are published by the `ahara-infra` services layer un
 | `/ahara/cognito/clients/<app>` | String | ahara-infra / cognito-app module |
 | `/ahara/cognito/alb-client-id` | String | ahara-infra |
 | `/ahara/cognito/alb-client-secret` | SecureString | ahara-infra |
+
+#### /ahara/auth0/*
+
+| Parameter | Type | Source |
+|-----------|------|--------|
+| `/ahara/auth0/domain` | String | Created by hand with the tenant |
+| `/ahara/auth0/client-id` | String | Created by hand with the tenant |
+| `/ahara/auth0/client-secret` | SecureString | Created by hand with the tenant |
+| `/ahara/auth0/issuer` | String | ahara-infra |
 
 #### /ahara/rds/*
 
