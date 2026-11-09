@@ -688,17 +688,43 @@ jobs:
           path: .ahara-tf-patterns
           persist-credentials: false
 
-      - name: Terraform deploy
+      # Providers download from their registries' hosts on every fresh runner; third-party ones
+      # come from GitHub releases, which time out often enough to fail deploys. A cache keyed on
+      # the lock file lets init reuse the exact locked packages, checked against its hashes.
+      - name: Restore Terraform provider cache
+        id: terraform-providers
+        if: inputs.deploy && github.ref == 'refs/heads/main' && steps.config.outputs.has_terraform == 'true'
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ runner.temp }}/terraform-plugin-cache
+          key: terraform-providers-${{ runner.os }}-${{ hashFiles('infrastructure/terraform/.terraform.lock.hcl') }}
+
+      - name: Terraform init
         if: inputs.deploy && github.ref == 'refs/heads/main' && steps.config.outputs.has_terraform == 'true'
         env:
           STATE_BUCKET: ${{ secrets.STATE_BUCKET }}
-          TERRAFORM_VARIABLES: ${{ inputs.terraform_variables }}
+          TF_PLUGIN_CACHE_DIR: ${{ runner.temp }}/terraform-plugin-cache
         run: |
-          python3 -c 'import json, os; from pathlib import Path; Path(os.environ["RUNNER_TEMP"], "ahara.tfvars.json").write_text(json.dumps(json.loads(os.environ["TERRAFORM_VARIABLES"])))'
+          mkdir -p "${TF_PLUGIN_CACHE_DIR}"
           terraform -chdir=infrastructure/terraform init -reconfigure \
             -backend-config="bucket=${STATE_BUCKET}" \
             -backend-config="region=us-east-1" \
             -backend-config="use_lockfile=true"
+
+      # Saved only after a successful init, so a partial download never becomes the cache.
+      - name: Save Terraform provider cache
+        if: inputs.deploy && github.ref == 'refs/heads/main' && steps.config.outputs.has_terraform == 'true' && steps.terraform-providers.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ runner.temp }}/terraform-plugin-cache
+          key: ${{ steps.terraform-providers.outputs.cache-primary-key }}
+
+      - name: Terraform deploy
+        if: inputs.deploy && github.ref == 'refs/heads/main' && steps.config.outputs.has_terraform == 'true'
+        env:
+          TERRAFORM_VARIABLES: ${{ inputs.terraform_variables }}
+        run: |
+          python3 -c 'import json, os; from pathlib import Path; Path(os.environ["RUNNER_TEMP"], "ahara.tfvars.json").write_text(json.dumps(json.loads(os.environ["TERRAFORM_VARIABLES"])))'
           terraform -chdir=infrastructure/terraform apply -auto-approve \
             -var-file="${RUNNER_TEMP}/ahara.tfvars.json"
 
