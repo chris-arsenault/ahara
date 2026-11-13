@@ -707,12 +707,39 @@ settings, Ahara branding and the sign-in domain `auth.ahara.io`. People see
 "Ahara" with your application's name. The tenant and its Terraform credential
 were created by hand once; nothing else in the tenant is changed by hand.
 
-**Each product owns its own objects in the tenant**, in its own Terraform:
+**One shared Ahara account connection.** `ahara-infra/services/auth0-accounts.tf`
+owns the database and verified-email rule. It adopts the original Arconis database
+without moving users: the internal connection name remains `arconis`, and its
+display name is Ahara. Products use this existing store directly; no data migration,
+backwards-compatibility mapper or facade is part of the shared-account model.
+Use `/ahara/auth0/connection-id` and `/ahara/auth0/connection-name` for new consumers.
 
-- **A database connection** named after the product. Its users are the
-  product's alone; enable it only for the product's applications.
-- **Applications** for the product's sign-in.
-- **APIs**, such as an MCP endpoint, whose identifier is the URL clients use.
+**Each product owns its applications and APIs**, in its own Terraform. Enable
+each first-party application with the additive association resource; never manage
+the whole connection's client list from a product:
+
+```hcl
+data "aws_ssm_parameter" "auth0_connection_id" { name = "/ahara/auth0/connection-id" }
+data "aws_ssm_parameter" "auth0_connection_name" { name = "/ahara/auth0/connection-name" }
+
+resource "auth0_connection_client" "web" {
+  connection_id = nonsensitive(data.aws_ssm_parameter.auth0_connection_id.value)
+  client_id     = auth0_client.web.client_id
+}
+```
+
+Pass the connection name explicitly in the browser's `/authorize` request, along
+with the product API's audience. The same Ahara credentials can sign in to other
+participating applications; API grants, application data, subscriptions and room
+access remain product-specific. A password reset affects all apps using that account.
+Product data deletion must never delete the shared Auth0 identity. The unrelated
+`Username-Password-Authentication` database is not the shared account store.
+
+For the initial ownership transfer, deploy Arconis's native `removed`/`import`
+declarations first, then ahara-infra's imports. The source stack detaches the
+connection and verification Action without destroying them; the platform adopts
+the same objects and publishes the SSM contract. Do not recreate the connection,
+move users, or merge accounts by email as part of this transfer.
 
 Configure the provider from the shared credential. Deployers can already read
 these parameters:
@@ -742,10 +769,10 @@ Validate tokens against the issuer in `/ahara/auth0/issuer`
 are third-party: they can sign in only through domain-level connections, see a
 consent screen, and reach only APIs that grant third-party clients default
 access (`auth0_client_grant` with `default_for = "third_party_clients"`).
-Mark a connection domain-level (`is_domain_connection = true`) and give an API
-that default grant only when the product's MCP endpoint needs them. Every other
-connection stays off the domain level, and every other API grants third-party
-clients nothing.
+The shared account connection is domain-level (`is_domain_connection = true`).
+Give an API that default grant only when its MCP endpoint needs it. Other
+connections stay off the domain level, and APIs without MCP access grant
+third-party clients nothing.
 
 Never change tenant settings, the custom domain or branding from a product
 repository; those belong to `ahara-infra`.
